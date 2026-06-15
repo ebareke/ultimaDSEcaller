@@ -151,10 +151,10 @@ docs/               published documentation site
 
 ## Authors
 
-- **Eric Bareke** — <bareke.eric@gmail.com>
-- **Ethan Bareke** — <bareke.ethan@gmail.com>
-- **Conrad Bareke** — <bareke.conrad@gmail.com>
+- **Eric B.** — <eb.bioinfo+eric@pm.me>
+- **Ethan B.** — <b.bioinfo+ethan@pm.me>
+- **Conrad B.** — <b.bioinfo+conrad@pm.me>
 
 ## License
 
-[MIT](LICENSE) © 2026 Eric Bareke, Ethan Bareke, and Conrad Bareke.
+[MIT](LICENSE) © 2026 Eric B., Ethan B., and Conrad B.
