@@ -1,0 +1,101 @@
+[package]
+name = "ultimaDSEcaller"
+version = "1.0.0"
+edition = "2024"
+authors = [
+    "Eric Bareke <bareke.eric@gmail.com>",
+    "Ethan Bareke <bareke.ethan@gmail.com>",
+    "Conrad Bareke <bareke.conrad@gmail.com>",
+]
+description = "Ultimate Differential Splicing Event caller for short- and long-read RNA-seq"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ebareke/ultimaDSEcaller"
+homepage = "https://ebareke.github.io/ultimaDSEcaller/"
+documentation = "https://ebareke.github.io/ultimaDSEcaller/"
+keywords = ["rna-seq", "splicing", "differential-splicing", "long-read", "transcriptomics"]
+categories = ["science", "command-line-utilities"]
+rust-version = "1.85"
+
+[lib]
+name = "ultimadsecaller"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ultimaDSEcaller"
+path = "src/main.rs"
+
+[[bench]]
+name = "pipeline"
+harness = false
+
+[dependencies]
+anyhow = "1"
+thiserror = "1"
+
+# CLI + configuration
+clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+csv = "1.3"
+
+# Genomics I/O
+noodles = { version = "0.78", features = ["bam", "cram", "gtf", "gff", "sam", "core", "bgzf", "fasta", "csi"] }
+
+# Compute
+rayon = "1.10"
+petgraph = "0.6"
+rust-lapper = "1.1"
+
+# Statistics and linear algebra
+statrs = "0.17"
+nalgebra = "0.32"
+
+# Parquet output (optional, behind `parquet` feature)
+parquet = { version = "53", optional = true, default-features = false, features = ["snap"] }
+
+# PDF report (optional, behind `pdf` feature)
+printpdf = { version = "0.7", optional = true, default-features = false }
+
+# Progress + logging
+indicatif = { version = "0.17", features = ["rayon"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Binary serialization for annotation cache
+bincode = "1.3"
+
+[dev-dependencies]
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+criterion = { version = "0.5", default-features = false }
+proptest = "1"
+
+[features]
+default = []
+# Optional Parquet output — kept behind a feature flag so the default build
+# stays lean. Enable with `--features parquet`.
+parquet = ["dep:parquet"]
+# Optional PDF report rendering. Enable with `--features pdf`.
+pdf = ["dep:printpdf"]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = "symbols"
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
+
+[profile.bench]
+lto = "fat"
+codegen-units = 1
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

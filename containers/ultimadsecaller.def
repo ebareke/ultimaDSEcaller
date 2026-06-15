@@ -1,0 +1,44 @@
+# Apptainer / Singularity definition for ultimaDSEcaller.
+#
+# Two ways to build:
+#
+#   # (a) From the published Docker image (recommended once it exists):
+#   apptainer build ultimadsecaller.sif containers/ultimadsecaller.def
+#
+#   # (b) From a locally-built Docker image, no registry needed:
+#   docker build -t ultimadsecaller:1.0.0 .
+#   apptainer build ultimadsecaller.sif docker-daemon://ultimadsecaller:1.0.0
+#
+# The resulting .sif bundles the caller plus minimap2, STAR, HISAT2 and
+# samtools, so it can run the entire FASTQ -> events pipeline on an HPC
+# cluster without Docker.
+
+Bootstrap: docker
+From: ghcr.io/ebareke/ultimadsecaller:1.0.0
+
+%labels
+    Author        Eric Bareke, Ethan Bareke, Conrad Bareke
+    Version       1.0.0
+    Description   Ultimate Differential Splicing Event caller (short- and long-read)
+    Homepage      https://ebareke.github.io/ultimaDSEcaller/
+
+%help
+    ultimaDSEcaller — Ultimate Differential Splicing Event caller.
+
+    Usage:
+        apptainer run ultimadsecaller.sif run \
+            -s samples.tsv -a annotation.gtf -o results \
+            --contrast group:treatment-control
+
+    Bundled tools: ultimaDSEcaller, samtools, minimap2, STAR, hisat2.
+    See https://ebareke.github.io/ultimaDSEcaller/ for full documentation.
+
+%environment
+    export PATH=/opt/conda/bin:/usr/local/bin:$PATH
+    export LC_ALL=C
+
+%runscript
+    exec /usr/local/bin/ultimaDSEcaller "$@"
+
+%test
+    /usr/local/bin/ultimaDSEcaller --version

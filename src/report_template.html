@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ultimaDSEcaller — Analysis Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #161b22;
+      --panel-2: #1f2530;
+      --fg: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-2: #f78166;
+      --good: #3fb950;
+      --bad: #f85149;
+      --border: #30363d;
+      --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { background: var(--bg); color: var(--fg); margin: 0; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.5; }
+    header { padding: 32px 48px 16px; border-bottom: 1px solid var(--border); }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -0.5px; }
+    h1 .tag { color: var(--accent); font-family: var(--mono); font-size: 18px; margin-left: 8px; }
+    header .meta { color: var(--muted); margin-top: 8px; font-family: var(--mono); font-size: 13px; }
+    main { padding: 24px 48px 64px; max-width: 1400px; margin: 0 auto; }
+    section { margin-top: 40px; }
+    h2 { font-size: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .grid { display: grid; gap: 16px; }
+    .grid.cards { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .grid.kinds { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+    .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card .value { font-size: 28px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .card .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .plot { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 360px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--mono); }
+    th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 500; }
+    tr:hover td { background: var(--panel-2); }
+    .delta-pos { color: var(--good); }
+    .delta-neg { color: var(--bad); }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--panel-2); color: var(--muted); font-size: 11px; font-family: var(--mono); }
+    .toc { position: sticky; top: 0; background: var(--bg); padding: 8px 48px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 13px; z-index: 100; }
+    .toc a { color: var(--muted); text-decoration: none; margin-right: 16px; }
+    .toc a:hover { color: var(--accent); }
+    footer { padding: 24px 48px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 64px; }
+    .todo { font-style: italic; color: var(--muted); padding: 24px; text-align: center; background: var(--panel); border: 1px dashed var(--border); border-radius: 8px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>ultimaDSEcaller<span class="tag">v0.1.0</span></h1>
+  <div class="meta" id="run-meta"></div>
+</header>
+
+<nav class="toc">
+  <a href="#summary">Summary</a>
+  <a href="#volcano">Volcano</a>
+  <a href="#ma">MA</a>
+  <a href="#embeddings">PCA / UMAP</a>
+  <a href="#distributions">PSI distributions</a>
+  <a href="#heatmap">Heatmap</a>
+  <a href="#coverage">Coverage</a>
+  <a href="#chrom">Chromosomes</a>
+  <a href="#junction-graphs">Splice graphs</a>
+  <a href="#consensus">Consensus</a>
+  <a href="#protein">Protein impact</a>
+  <a href="#top-events">Top events</a>
+  <a href="#sashimi">Sashimi</a>
+  <a href="#advanced">Advanced events</a>
+  <a href="#diu">Isoform usage</a>
+  <a href="#high-confidence">High-confidence set</a>
+</nav>
+
+<main>
+  <section id="summary">
+    <h2>Executive summary</h2>
+    <div class="grid cards" id="summary-cards"></div>
+  </section>
+
+  <section id="volcano">
+    <h2>Volcano plot (ΔPSI vs −log₁₀ q-value)</h2>
+    <div class="plot" id="volcano-plot"></div>
+  </section>
+
+  <section id="ma">
+    <h2>MA plot (log fold-change vs mean coverage)</h2>
+    <div class="plot" id="ma-plot"></div>
+  </section>
+
+  <section id="embeddings">
+    <h2>Sample embeddings</h2>
+    <div class="grid kinds">
+      <div class="plot" id="pca-plot"></div>
+      <div class="plot" id="umap-plot"></div>
+    </div>
+  </section>
+
+  <section id="distributions">
+    <h2>PSI distributions, per event type</h2>
+    <div class="grid kinds" id="kind-plots"></div>
+  </section>
+
+  <section id="heatmap">
+    <h2>Top events × samples heatmap (PSI)</h2>
+    <div class="plot" id="heatmap-plot"></div>
+  </section>
+
+  <section id="coverage">
+    <h2>Coverage distribution (per sample)</h2>
+    <div class="plot" id="coverage-plot"></div>
+  </section>
+
+  <section id="chrom">
+    <h2>Events per chromosome</h2>
+    <div class="plot" id="chrom-plot"></div>
+  </section>
+
+  <section id="junction-graphs">
+    <h2>Splice-junction graphs (top genes)</h2>
+    <div id="junction-graphs-host"></div>
+  </section>
+
+  <section id="consensus">
+    <h2>Consensus statistical results</h2>
+    <p style="color: var(--muted)">Stouffer / Brown / weighted-Fisher combination of all available per-event p-values, plus motif and coverage priors.</p>
+    <div id="consensus-table" style="overflow-x: auto"></div>
+  </section>
+
+  <section id="protein">
+    <h2>Protein consequence + NMD prediction</h2>
+    <div class="grid cards" id="protein-cards"></div>
+  </section>
+
+  <section id="top-events">
+    <h2>Top events per category (ranked by adjusted p-value)</h2>
+    <div id="top-tables"></div>
+  </section>
+
+  <section id="sashimi">
+    <h2>Sashimi tracks (top events)</h2>
+    <div id="sashimi-tracks"></div>
+  </section>
+
+  <section id="advanced">
+    <h2>Advanced & complex events</h2>
+    <div class="grid cards" id="advanced-cards"></div>
+  </section>
+
+  <section id="diu">
+    <h2>Differential isoform usage</h2>
+    <div id="sankey-plot" class="plot"></div>
+    <div id="diu-table" style="overflow-x: auto; margin-top: 16px"></div>
+  </section>
+
+  <section id="high-confidence">
+    <h2>High-confidence event set</h2>
+    <p style="color: var(--muted)">Events passing the configured FDR, |ΔPSI|, confidence and coverage thresholds.</p>
+    <div id="hc-table" style="overflow-x: auto"></div>
+  </section>
+</main>
+
+<footer>
+  Report generated by ultimaDSEcaller. Plot interactivity provided by Plotly.js.
+</footer>
+
+<script>
+const DATA = /*__ULTIMADSE_DATA__*/null;
+
+(function () {
+  // Tiny DOM helpers — built around textContent so that strings from the
+  // input GTF can never escape into HTML context. (No innerHTML anywhere.)
+  function el(tag, opts) {
+    opts = opts || {};
+    const e = document.createElement(tag);
+    if (opts.cls) e.className = opts.cls;
+    if (opts.id) e.id = opts.id;
+    if (opts.text !== undefined) e.textContent = String(opts.text);
+    if (opts.style) Object.assign(e.style, opts.style);
+    return e;
+  }
+  function fail(msg) {
+    document.body.replaceChildren(el('p', { text: msg, style: { padding: '48px', color: '#f85149' } }));
+  }
+
+  if (!DATA) {
+    fail('No data — template did not receive an embedded payload.');
+    return;
+  }
+
+  // Header meta.
+  const m = DATA.run;
+  document.getElementById('run-meta').textContent =
+    `${m.n_samples} samples · ${m.n_groups} groups · contrast: ${m.contrast || '(none)'} · tech: ${m.tech} · annotation: ${m.annotation_path}`;
+
+  // Summary cards.
+  const cards = document.getElementById('summary-cards');
+  const cardSpec = [
+    ['Events called', DATA.summary.events_total, 'across all 7 canonical AS categories'],
+    ['High-confidence', DATA.summary.events_high_confidence, 'after FDR + |ΔPSI| + coverage filter'],
+  ];
+  for (const k of ['SE','MXE','A5SS','A3SS','IR','AFE','ALE']) {
+    const stats = DATA.per_kind[k] || { total: 0, significant: 0 };
+    cardSpec.push([k, stats.total, `${stats.significant} significant`]);
+  }
+  for (const [label, val, sub] of cardSpec) {
+    const card = el('div', { cls: 'card' });
+    card.append(
+      el('div', { cls: 'label', text: label }),
+      el('div', { cls: 'value', text: val }),
+      el('div', { cls: 'sub', text: sub }),
+    );
+    cards.appendChild(card);
+  }
+
+  // Volcano. Plotly receives arrays of primitives; text labels are escaped
+  // by Plotly's own renderer.
+  const v = DATA.volcano || [];
+  const kinds = Array.from(new Set(v.map(p => p.event_type)));
+  const traces = kinds.map(k => ({
+    x: v.filter(p => p.event_type === k).map(p => p.delta_psi),
+    y: v.filter(p => p.event_type === k).map(p => p.neg_log10_q),
+    text: v.filter(p => p.event_type === k).map(p => `${p.gene_id} | ${p.event_id}`),
+    mode: 'markers',
+    type: 'scattergl',
+    name: k,
+    marker: { size: 5, opacity: 0.7 },
+  }));
+  Plotly.newPlot('volcano-plot', traces, {
+    paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+    font: { color: '#e6edf3' },
+    xaxis: { title: 'ΔPSI', zeroline: true, zerolinecolor: '#30363d', gridcolor: '#30363d' },
+    yaxis: { title: '−log10(adjusted p-value)', gridcolor: '#30363d' },
+    margin: { l: 60, r: 16, t: 16, b: 50 },
+    legend: { orientation: 'h', y: -0.2 },
+  }, { displaylogo: false, responsive: true });
+
+  // Per-kind PSI histograms.
+  const kindPlots = document.getElementById('kind-plots');
+  for (const kindName of Object.keys(DATA.per_kind)) {
+    const stats = DATA.per_kind[kindName];
+    if (!stats || stats.total === 0) continue;
+    const id = `plot-${kindName}`;
+    const div = el('div', { cls: 'plot', id });
+    kindPlots.appendChild(div);
+
+    const xs = stats.psi_numerator_histogram.map(b => b[0]);
+    const numerator = stats.psi_numerator_histogram.map(b => b[1]);
+    const denominator = stats.psi_denominator_histogram.map(b => b[1]);
+
+    Plotly.newPlot(id, [
+      { x: xs, y: numerator, type: 'bar', name: 'numerator group', marker: { color: '#58a6ff' } },
+      { x: xs, y: denominator, type: 'bar', name: 'denominator group', marker: { color: '#f78166' } },
+    ], {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      title: { text: `${kindName} — ${stats.total} events, mean ΔPSI ${(+stats.mean_delta_psi).toFixed(3)}`, font: { size: 13 } },
+      barmode: 'overlay', bargap: 0.05,
+      xaxis: { title: 'PSI', gridcolor: '#30363d' },
+      yaxis: { title: 'events', gridcolor: '#30363d' },
+      margin: { l: 50, r: 16, t: 40, b: 40 },
+      legend: { orientation: 'h', y: -0.2 },
+    }, { displaylogo: false, responsive: true });
+  }
+
+  // Tables built via DOM API so cell values are textContent only.
+  const COLS = ['event_id', 'gene_id', 'chrom', 'event_type', 'mean_psi_numerator', 'mean_psi_denominator', 'delta_psi', 'adjusted_p_value', 'confidence'];
+  function fmt(col, v) {
+    if (typeof v !== 'number') return String(v);
+    if (!Number.isFinite(v)) return String(v);
+    if (col === 'delta_psi') return v.toFixed(3);
+    if (col === 'adjusted_p_value') return Math.abs(v) < 1e-3 ? v.toExponential(2) : v.toFixed(4);
+    if (col === 'confidence') return v.toFixed(3);
+    if (Number.isInteger(v)) return String(v);
+    return v.toFixed(3);
+  }
+  function makeTable(rows) {
+    const table = el('table');
+    const thead = el('thead');
+    const headRow = el('tr');
+    for (const c of COLS) headRow.appendChild(el('th', { text: c }));
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = el('tbody');
+    for (const r of rows) {
+      const tr = el('tr');
+      for (const c of COLS) {
+        let v = r[c];
+        const cls = (c === 'delta_psi' && typeof v === 'number')
+          ? (v >= 0 ? 'delta-pos' : 'delta-neg') : '';
+        tr.appendChild(el('td', { text: fmt(c, v), cls }));
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+  }
+
+  const topTables = document.getElementById('top-tables');
+  for (const k of Object.keys(DATA.top_events)) {
+    const rows = DATA.top_events[k];
+    if (!rows || !rows.length) continue;
+    const h = el('h3', { style: { marginTop: '24px' } });
+    h.append(document.createTextNode(k + ' '), el('span', { cls: 'pill', text: `${rows.length} shown` }));
+    topTables.appendChild(h);
+    const wrap = el('div', { style: { overflowX: 'auto' } });
+    wrap.appendChild(makeTable(rows));
+    topTables.appendChild(wrap);
+  }
+
+  const hc = document.getElementById('hc-table');
+  if (DATA.high_confidence.length) {
+    hc.appendChild(makeTable(DATA.high_confidence));
+  } else {
+    hc.appendChild(el('div', { cls: 'todo', text: 'No events passed the high-confidence filter at the current thresholds.' }));
+  }
+
+  // ─── MA plot ──────────────────────────────────────────────────────────
+  const ma = DATA.ma_points || [];
+  if (ma.length) {
+    const maKinds = Array.from(new Set(ma.map(p => p.event_type)));
+    const maTraces = maKinds.map(k => ({
+      x: ma.filter(p => p.event_type === k).map(p => p.mean_log_total),
+      y: ma.filter(p => p.event_type === k).map(p => p.log_fold_change),
+      text: ma.filter(p => p.event_type === k).map(p => `${p.gene_id} | ${p.event_id}`),
+      mode: 'markers',
+      type: 'scattergl',
+      name: k,
+      marker: { size: 5, opacity: 0.7 },
+    }));
+    Plotly.newPlot('ma-plot', maTraces, {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      xaxis: { title: 'ln(mean coverage)', gridcolor: '#30363d' },
+      yaxis: { title: 'logit(ψ_num) − logit(ψ_denom)', gridcolor: '#30363d', zeroline: true, zerolinecolor: '#30363d' },
+      margin: { l: 60, r: 16, t: 16, b: 50 },
+      legend: { orientation: 'h', y: -0.2 },
+    }, { displaylogo: false, responsive: true });
+  } else {
+    document.getElementById('ma-plot').appendChild(el('div', { cls: 'todo', text: 'No MA data available.' }));
+  }
+
+  // ─── PCA + UMAP ───────────────────────────────────────────────────────
+  function plotEmbedding(divId, emb, title) {
+    const target = document.getElementById(divId);
+    if (!emb || !emb.xs || emb.xs.length === 0) {
+      target.appendChild(el('div', { cls: 'todo', text: `${title}: not computed (fewer than 2 samples or 2 events).` }));
+      return;
+    }
+    Plotly.newPlot(divId, [{
+      x: emb.xs, y: emb.ys, text: emb.samples, mode: 'markers+text',
+      textposition: 'top center', type: 'scatter',
+      marker: { size: 10, color: '#58a6ff' },
+    }], {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      title: { text: title, font: { size: 13 } },
+      xaxis: { title: 'dim 1', gridcolor: '#30363d' },
+      yaxis: { title: 'dim 2', gridcolor: '#30363d' },
+      margin: { l: 50, r: 16, t: 40, b: 40 },
+    }, { displaylogo: false, responsive: true });
+  }
+  plotEmbedding('pca-plot', DATA.pca, 'PCA (first two PCs)');
+  plotEmbedding('umap-plot', DATA.umap, 'UMAP-like spectral embedding');
+
+  // ─── Sashimi tracks ───────────────────────────────────────────────────
+  const sashimiHost = document.getElementById('sashimi-tracks');
+  const sashimi = DATA.sashimi || [];
+  if (!sashimi.length) {
+    sashimiHost.appendChild(el('div', { cls: 'todo', text: 'No sashimi tracks emitted — no significant events or no BAM coverage.' }));
+  } else {
+    for (const tr of sashimi) {
+      const wrap = el('div', { cls: 'plot', style: { marginTop: '12px' } });
+      const head = el('div', { style: { color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: '12px', marginBottom: '8px' } });
+      head.appendChild(el('span', { text: `${tr.gene_id} ${tr.event_id} ${tr.chrom}:${tr.window_start}-${tr.window_end}` }));
+      wrap.appendChild(head);
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const w = 920, h = 220;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', String(h));
+      const span = tr.window_end - tr.window_start + 1;
+      const scaleX = (pos) => ((pos - tr.window_start) / span) * w;
+
+      // Coverage tracks.
+      const maxCov = Math.max(...tr.coverage_numerator, ...tr.coverage_denominator, 1);
+      function band(arr, color, yBase) {
+        const bins = arr.length;
+        for (let i = 0; i < bins; i++) {
+          const x = (i / bins) * w;
+          const ww = w / bins;
+          const hh = (arr[i] / maxCov) * 60;
+          const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          r.setAttribute('x', String(x));
+          r.setAttribute('y', String(yBase - hh));
+          r.setAttribute('width', String(ww));
+          r.setAttribute('height', String(hh));
+          r.setAttribute('fill', color);
+          r.setAttribute('opacity', '0.7');
+          svg.appendChild(r);
+        }
+      }
+      band(tr.coverage_numerator, '#58a6ff', 80);
+      band(tr.coverage_denominator, '#f78166', 150);
+
+      // Exon track.
+      for (const [s, e] of tr.exons) {
+        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', String(scaleX(s)));
+        r.setAttribute('y', String(180));
+        r.setAttribute('width', String(Math.max(2, scaleX(e) - scaleX(s))));
+        r.setAttribute('height', '20');
+        r.setAttribute('fill', '#3fb950');
+        svg.appendChild(r);
+      }
+
+      // Junction arcs (Bézier).
+      for (const arc of (tr.arcs || [])) {
+        const x1 = scaleX(arc.donor_end), x2 = scaleX(arc.acceptor_start);
+        const mid = (x1 + x2) / 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const dy = arc.kind === 'inclusion' ? -40 : -70;
+        path.setAttribute('d', `M ${x1} 180 Q ${mid} ${180 + dy} ${x2} 180`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', arc.kind === 'inclusion' ? '#58a6ff' : '#f85149');
+        path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('opacity', '0.85');
+        svg.appendChild(path);
+      }
+
+      wrap.appendChild(svg);
+      sashimiHost.appendChild(wrap);
+    }
+  }
+
+  // ─── Advanced events ──────────────────────────────────────────────────
+  const advHost = document.getElementById('advanced-cards');
+  const advCounts = DATA.advanced_event_counts || {};
+  if (!Object.keys(advCounts).length) {
+    advHost.appendChild(el('div', { cls: 'todo', text: 'No advanced events detected (or no fusion BEDPE / CAGE input supplied).' }));
+  } else {
+    for (const [k, v] of Object.entries(advCounts)) {
+      const card = el('div', { cls: 'card' });
+      card.append(
+        el('div', { cls: 'label', text: k }),
+        el('div', { cls: 'value', text: v }),
+        el('div', { cls: 'sub', text: 'events detected' }),
+      );
+      advHost.appendChild(card);
+    }
+  }
+
+  // ─── Sankey & differential isoform usage ─────────────────────────────
+  const sankeyTarget = document.getElementById('sankey-plot');
+  const sankey = DATA.isoform_sankey;
+  if (sankey && sankey.nodes && sankey.nodes.length > 2) {
+    Plotly.newPlot('sankey-plot', [{
+      type: 'sankey',
+      orientation: 'h',
+      node: { label: sankey.nodes, pad: 12, thickness: 16, color: '#58a6ff' },
+      link: {
+        source: sankey.links.map(l => l.source),
+        target: sankey.links.map(l => l.target),
+        value: sankey.links.map(l => l.value),
+        color: 'rgba(88, 166, 255, 0.35)',
+      },
+    }], {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      margin: { l: 12, r: 12, t: 12, b: 12 },
+    }, { displaylogo: false, responsive: true });
+  } else {
+    sankeyTarget.appendChild(el('div', { cls: 'todo', text: 'Isoform Sankey requires long-read input. Re-run with --tech pac-bio or --tech ont to populate this.' }));
+  }
+
+  // ─── Heatmap ──────────────────────────────────────────────────────────
+  if (DATA.heatmap && DATA.heatmap.event_ids && DATA.heatmap.event_ids.length) {
+    Plotly.newPlot('heatmap-plot', [{
+      z: DATA.heatmap.psi,
+      x: DATA.heatmap.samples,
+      y: DATA.heatmap.event_ids,
+      type: 'heatmap',
+      colorscale: 'RdBu',
+      reversescale: true,
+      zmin: 0, zmax: 1,
+      colorbar: { title: 'PSI' },
+    }], {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3', size: 10 },
+      xaxis: { tickangle: -45 },
+      yaxis: { autorange: 'reversed', automargin: true },
+      margin: { l: 200, r: 16, t: 16, b: 100 },
+    }, { displaylogo: false, responsive: true });
+  } else {
+    document.getElementById('heatmap-plot').appendChild(el('div', { cls: 'todo', text: 'Heatmap requires ≥ 2 samples and ≥ 1 detected event.' }));
+  }
+
+  // ─── Coverage distribution ───────────────────────────────────────────
+  const cov = DATA.coverage_distribution || [];
+  if (cov.length) {
+    const grouped = {};
+    for (const r of cov) {
+      if (!grouped[r.group]) grouped[r.group] = { x: [], y: [] };
+      grouped[r.group].x.push(r.sample);
+      grouped[r.group].y.push(r.mean_junction_support);
+    }
+    const tracks = Object.keys(grouped).map(g => ({
+      x: grouped[g].x, y: grouped[g].y, type: 'bar', name: g,
+    }));
+    Plotly.newPlot('coverage-plot', tracks, {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      xaxis: { title: 'sample', tickangle: -45 },
+      yaxis: { title: 'mean junction support', gridcolor: '#30363d' },
+      barmode: 'group',
+      margin: { l: 60, r: 16, t: 16, b: 100 },
+    }, { displaylogo: false, responsive: true });
+  } else {
+    document.getElementById('coverage-plot').appendChild(el('div', { cls: 'todo', text: 'No coverage data available.' }));
+  }
+
+  // ─── Chromosome distribution ─────────────────────────────────────────
+  const chr = DATA.chrom_distribution || [];
+  if (chr.length) {
+    Plotly.newPlot('chrom-plot', [
+      { x: chr.map(c => c.chrom), y: chr.map(c => c.total), type: 'bar', name: 'all events', marker: { color: '#58a6ff' } },
+      { x: chr.map(c => c.chrom), y: chr.map(c => c.significant), type: 'bar', name: 'q ≤ 0.05', marker: { color: '#f78166' } },
+    ], {
+      paper_bgcolor: '#161b22', plot_bgcolor: '#161b22',
+      font: { color: '#e6edf3' },
+      xaxis: { title: 'chromosome', tickangle: -45 },
+      yaxis: { title: 'events', gridcolor: '#30363d' },
+      barmode: 'group',
+      margin: { l: 60, r: 16, t: 16, b: 100 },
+    }, { displaylogo: false, responsive: true });
+  } else {
+    document.getElementById('chrom-plot').appendChild(el('div', { cls: 'todo', text: 'No chromosome data available.' }));
+  }
+
+  // ─── Splice junction graphs (top genes, SVG) ─────────────────────────
+  const jgHost = document.getElementById('junction-graphs-host');
+  const jgs = DATA.junction_graphs || [];
+  if (!jgs.length) {
+    jgHost.appendChild(el('div', { cls: 'todo', text: 'No significant gene exhibits enough events for a splice-junction graph view yet.' }));
+  } else {
+    for (const g of jgs) {
+      const wrap = el('div', { cls: 'plot', style: { marginTop: '12px' } });
+      const head = el('div', { style: { color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: '12px', marginBottom: '8px' } });
+      head.appendChild(document.createTextNode(`${g.gene_id} on ${g.chrom} — ${g.nodes.length} exons, ${g.edges.length} junctions`));
+      wrap.appendChild(head);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const w = 920, h = 140;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', String(h));
+      const minX = Math.min(...g.nodes.map(n => n.start));
+      const maxX = Math.max(...g.nodes.map(n => n.end));
+      const sx = (p) => ((p - minX) / Math.max(1, maxX - minX)) * (w - 40) + 20;
+      // Exon boxes.
+      for (const n of g.nodes) {
+        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', String(sx(n.start)));
+        r.setAttribute('y', '90');
+        r.setAttribute('width', String(Math.max(2, sx(n.end) - sx(n.start))));
+        r.setAttribute('height', '20');
+        r.setAttribute('fill', '#3fb950');
+        svg.appendChild(r);
+      }
+      // Junction arcs.
+      for (const e of g.edges) {
+        const a = g.nodes[e.source], b = g.nodes[e.target];
+        if (!a || !b) continue;
+        const x1 = sx(a.end), x2 = sx(b.start);
+        const mid = (x1 + x2) / 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x1} 90 Q ${mid} ${30} ${x2} 90`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#58a6ff');
+        path.setAttribute('stroke-width', String(Math.min(3, 0.6 + 0.3 * e.transcripts)));
+        path.setAttribute('opacity', '0.7');
+        svg.appendChild(path);
+      }
+      wrap.appendChild(svg);
+      jgHost.appendChild(wrap);
+    }
+  }
+
+  // ─── Consensus results table ─────────────────────────────────────────
+  const consHost = document.getElementById('consensus-table');
+  const cons = DATA.consensus || [];
+  if (cons.length) {
+    const cCols = ['combined_p', 'consensus_q', 'confidence', 'methods_combined', 'method'];
+    const tbl = el('table');
+    const thead = el('thead');
+    const hr = el('tr');
+    hr.appendChild(el('th', { text: '#' }));
+    for (const c of cCols) hr.appendChild(el('th', { text: c }));
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    const tbody = el('tbody');
+    const sorted = cons
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => Number.isFinite(r.combined_p))
+      .sort((a, b) => a.r.consensus_q - b.r.consensus_q)
+      .slice(0, 100);
+    for (const { r, i } of sorted) {
+      const tr = el('tr');
+      tr.appendChild(el('td', { text: i + 1 }));
+      for (const c of cCols) {
+        let v = r[c];
+        let text = String(v);
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          text = Math.abs(v) < 1e-3 ? v.toExponential(2) : v.toFixed(4);
+        }
+        tr.appendChild(el('td', { text }));
+      }
+      tbody.appendChild(tr);
+    }
+    tbl.appendChild(tbody);
+    consHost.appendChild(tbl);
+  } else {
+    consHost.appendChild(el('div', { cls: 'todo', text: 'No consensus results — needs at least one statistical test to have produced p-values.' }));
+  }
+
+  // ─── Protein consequence cards ───────────────────────────────────────
+  const protHost = document.getElementById('protein-cards');
+  const prot = DATA.protein_consequences || [];
+  if (!prot.length) {
+    protHost.appendChild(el('div', { cls: 'todo', text: 'No protein consequence predictions — re-run with `--reference path/to/genome.fa` and CDS records in the annotation.' }));
+  } else {
+    const counts = {};
+    for (const p of prot) counts[p.consequence] = (counts[p.consequence] || 0) + 1;
+    for (const [k, v] of Object.entries(counts)) {
+      const card = el('div', { cls: 'card' });
+      card.append(
+        el('div', { cls: 'label', text: k }),
+        el('div', { cls: 'value', text: v }),
+        el('div', { cls: 'sub', text: 'events' }),
+      );
+      protHost.appendChild(card);
+    }
+  }
+
+  const diuHost = document.getElementById('diu-table');
+  const diu = DATA.diu || [];
+  if (diu.length) {
+    const cols = ['gene_id', 'n_isoforms', 'chi2', 'df', 'p_value'];
+    const table = el('table');
+    const thead = el('thead');
+    const headRow = el('tr');
+    for (const c of cols) headRow.appendChild(el('th', { text: c }));
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = el('tbody');
+    const sortedDiu = [...diu].sort((a, b) => a.p_value - b.p_value).slice(0, 50);
+    for (const r of sortedDiu) {
+      const tr = el('tr');
+      for (const c of cols) {
+        let v = r[c];
+        let text = String(v);
+        if (typeof v === 'number') {
+          text = c === 'p_value' ? (v < 1e-3 ? v.toExponential(2) : v.toFixed(4)) : (Number.isInteger(v) ? String(v) : v.toFixed(3));
+        }
+        tr.appendChild(el('td', { text }));
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    diuHost.appendChild(table);
+  } else {
+    diuHost.appendChild(el('div', { cls: 'todo', text: 'No differential isoform usage records — needs long-read data with ≥ 2 isoforms per gene and ≥ 10 reads per group.' }));
+  }
+})();
+</script>
+</body>
+</html>

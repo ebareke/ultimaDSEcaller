@@ -1,0 +1,12 @@
+target/
+.git/
+.github/
+example/results/
+example/synthetic/*.bam
+example/synthetic/*.bai
+example/synthetic/*.sam
+example/synthetic/*.ultidse
+**/*.ultidse
+**/.DS_Store
+docs/
+*.sif

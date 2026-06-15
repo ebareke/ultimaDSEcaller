@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ultimaDSEcaller — Differential Splicing Event caller</title>
+<meta name="description" content="Ultimate Differential Splicing Event caller for short- and long-read RNA-seq. Detect, quantify and test alternative-splicing changes from FASTQ to publication-ready reports.">
+<style>
+  :root {
+    --accent: #1E6B4F;
+    --accent-2: #2D8B6A;
+    --text: #1C1B18;
+    --muted: #6F6B61;
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --border: #E5E2DB;
+    --code-bg: #11231C;
+    --code-fg: #D7E9DF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  header { text-align: center; margin-bottom: 2.5rem; }
+  header h1 { color: var(--accent); font-size: 2.4rem; margin: 0 0 .35rem; letter-spacing: -0.5px; }
+  header .tag { color: var(--text); font-size: 1.1rem; font-weight: 600; margin: 0 0 .5rem; }
+  header p { color: var(--muted); margin: .15rem 0; font-size: .95rem; }
+  nav { text-align: center; margin: 1.5rem 0 2.5rem; }
+  nav a {
+    display: inline-block; margin: .25rem .4rem; padding: .45rem 1.1rem;
+    border: 1px solid var(--accent); border-radius: 999px;
+    color: var(--accent); text-decoration: none; font-weight: 600; font-size: .9rem;
+  }
+  nav a:hover { background: var(--accent); color: #fff; }
+  section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem;
+  }
+  h2 { color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: .4rem; margin-top: 0; }
+  h3 { margin-top: 1.4rem; }
+  a { color: var(--accent); }
+  ul { padding-left: 1.2rem; }
+  li { margin: .3rem 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .card { background: #F0F5F2; border-left: 4px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; }
+  .card h3 { margin: 0 0 .3rem; font-size: 1rem; color: var(--accent); }
+  .card p { margin: 0; font-size: .9rem; color: var(--muted); }
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: 1rem 1.1rem; overflow-x: auto; font-size: .85rem; line-height: 1.5;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace; }
+  p code, li code { background: #EAF0ED; color: var(--accent); padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 2rem; }
+  .pill { display:inline-block; background:#EAF0ED; color:var(--accent); border-radius:999px; padding:.1rem .6rem; font-size:.8rem; font-weight:600; margin:.1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ultimaDSEcaller</h1>
+    <p class="tag">Ultimate Differential Splicing Event caller — short- and long-read RNA-seq</p>
+    <p>From FASTQ to publication-ready differential-splicing results.</p>
+    <p>By Eric Bareke, Ethan Bareke &amp; Conrad Bareke · MIT licensed</p>
+  </header>
+
+  <nav>
+    <a href="https://github.com/ebareke/ultimaDSEcaller">GitHub</a>
+    <a href="https://github.com/ebareke/ultimaDSEcaller/blob/main/USAGE.md">Usage</a>
+    <a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/example">Example</a>
+    <a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/nextflow">Nextflow</a>
+    <a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/containers">Containers</a>
+  </nav>
+
+  <section>
+    <h2>What it does</h2>
+    <p>
+      <strong>ultimaDSEcaller</strong> detects, quantifies, statistically
+      tests and reports <strong>differential alternative-splicing events</strong>
+      between groups of RNA-seq samples — from Illumina short reads and
+      PacBio / Oxford Nanopore long reads alike. It is a single fast Rust
+      binary, with a Nextflow pipeline and container images that cover the
+      whole path from raw reads to interactive reports.
+    </p>
+    <div>
+      <span class="pill">SE</span><span class="pill">MXE</span><span class="pill">A5SS</span>
+      <span class="pill">A3SS</span><span class="pill">IR</span><span class="pill">AFE</span>
+      <span class="pill">ALE</span><span class="pill">cryptic</span><span class="pill">MSE</span>
+      <span class="pill">MIR</span><span class="pill">recursive</span><span class="pill">nested</span>
+      <span class="pill">partial-exon</span><span class="pill">exon-intron</span>
+      <span class="pill">alt-promoter</span><span class="pill">alt-polyA</span>
+      <span class="pill">tandem-UTR</span><span class="pill">fusion</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Highlights</h2>
+    <div class="grid">
+      <div class="card"><h3>18 event classes</h3><p>Seven canonical plus eleven advanced splicing event types.</p></div>
+      <div class="card"><h3>Short &amp; long read</h3><p>Junction PSI for Illumina; isoform reconstruction for PacBio/ONT.</p></div>
+      <div class="card"><h3>Consensus statistics</h3><p>Beta-binomial, GLM, GLMM and Fisher fused into one calibrated q-value.</p></div>
+      <div class="card"><h3>Functional impact</h3><p>Splice-site motifs, protein consequence and NMD prediction.</p></div>
+      <div class="card"><h3>Rich reports</h3><p>Volcano, MA, PCA, UMAP, heatmaps, sashimi, Sankey — one HTML file.</p></div>
+      <div class="card"><h3>Reproducible</h3><p>Docker, Apptainer and Nextflow run FASTQ → events in one command.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Install</h2>
+    <pre><code># From source (Rust 1.85+)
+git clone https://github.com/ebareke/ultimaDSEcaller.git
+cd ultimaDSEcaller
+cargo build --release --all-features
+
+# Or build the container (bundles minimap2, STAR, HISAT2, samtools)
+docker build -t ultimadsecaller:1.0.0 .</code></pre>
+  </section>
+
+  <section>
+    <h2>Run</h2>
+    <h3>From BAMs</h3>
+    <pre><code>ultimaDSEcaller run \
+    --sample-sheet samples.tsv \
+    --annotation gencode.v45.gtf.gz \
+    --reference GRCh38.fa \
+    --out results/ \
+    --contrast group:treatment-control \
+    --consensus stouffer</code></pre>
+    <h3>From FASTQ (Nextflow)</h3>
+    <pre><code>nextflow run nextflow/main.nf \
+    --samplesheet samples.csv \
+    --gtf annotation.gtf --fasta genome.fa \
+    --contrast 'group:treatment-control' \
+    -profile docker</code></pre>
+    <h3>Try the bundled example</h3>
+    <pre><code>cargo build --release
+bash example/run_example.sh   # calls a synthetic exon-skipping event end-to-end</code></pre>
+  </section>
+
+  <section>
+    <h2>Documentation</h2>
+    <table>
+      <tr><th>Guide</th><th>Contents</th></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/blob/main/USAGE.md">USAGE.md</a></td><td>Full CLI reference, recipes, output schema</td></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/example">example/</a></td><td>Runnable end-to-end demonstration</td></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/nextflow">nextflow/</a></td><td>FASTQ → events pipeline</td></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/tree/main/containers">containers/</a></td><td>Docker / Apptainer images</td></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/blob/main/CHANGELOG.md">CHANGELOG.md</a></td><td>Release history</td></tr>
+      <tr><td><a href="https://github.com/ebareke/ultimaDSEcaller/blob/main/ROADMAP.md">ROADMAP.md</a></td><td>Planned work</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    <p>© 2026 Eric Bareke, Ethan Bareke &amp; Conrad Bareke · <a href="https://github.com/ebareke/ultimaDSEcaller/blob/main/LICENSE">MIT License</a></p>
+    <p><a href="https://github.com/ebareke/ultimaDSEcaller">github.com/ebareke/ultimaDSEcaller</a></p>
+  </footer>
+</div>
+</body>
+</html>

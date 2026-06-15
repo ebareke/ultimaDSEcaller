@@ -1,0 +1,36 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# ultimaDSEcaller caches and run outputs
+*.ultidse
+example/results/
+nextflow/test_results/
+nextflow/results/
+
+# Example regenerated artifacts (reproduced by the generator scripts)
+example/synthetic/*.sam
+example/synthetic/*.bam
+example/synthetic/*.bai
+example/synthetic/reference.fa
+example/synthetic/reference.fa.fai
+example/synthetic/annotation.gtf
+example/synthetic/samples.tsv
+example/nextflow/fastq/
+example/nextflow/samplesheet.csv
+
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+
+# Container images
+*.sif
+
+# Local agent/tooling files (not part of the published project)
+CLAUDE.md
+AGENTS.md
+.claude/
+
+# macOS
+.DS_Store
