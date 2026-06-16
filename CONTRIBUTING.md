@@ -52,6 +52,6 @@ two-sided symmetry"). Reference issues where relevant.
 
 ## Maintainers
 
-- Eric Bareke — <bareke.eric@gmail.com>
-- Ethan Bareke — <bareke.ethan@gmail.com>
-- Conrad Bareke — <bareke.conrad@gmail.com>
+- Eric B. — <eb.bioinfo@pm.me>
+- Ethan B. — <eb.bioinfo@pm.me>
+- Conrad B. — <eb.bioinfo@pm.me>
