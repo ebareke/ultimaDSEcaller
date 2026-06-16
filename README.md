@@ -151,9 +151,9 @@ docs/               published documentation site
 
 ## Authors
 
-- **Eric B.** — <eb.bioinfo+eric@pm.me>
-- **Ethan B.** — <b.bioinfo+ethan@pm.me>
-- **Conrad B.** — <b.bioinfo+conrad@pm.me>
+- **Eric B.** — <eb.bioinfo@pm.me>
+- **Ethan B.** — <b.bioinfo@pm.me>
+- **Conrad B.** — <b.bioinfo@pm.me>
 
 ## License
 
