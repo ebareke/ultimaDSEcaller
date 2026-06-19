@@ -60,5 +60,7 @@ Each tagged release builds and pushes both artifacts automatically:
 | STAR            | 2.7.11b | Short-read (Illumina) spliced aligner    |
 | HISAT2          | 2.2.1   | Alternative short-read spliced aligner   |
 
-The caller itself is a static musl binary, so it also works when copied out
-of the image onto any Linux x86-64 host.
+The container's caller binary is built on Ubuntu 22.04 (jammy), matching the
+runtime's glibc. For a portable, statically-linked (musl) binary that runs on
+any Linux x86-64 / aarch64 host, use the tarballs attached to each
+[GitHub Release](https://github.com/ebareke/ultimaDSEcaller/releases).
