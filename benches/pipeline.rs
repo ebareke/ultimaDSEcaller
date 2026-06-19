@@ -5,7 +5,7 @@
 //! * `bh_fdr`  — Benjamini-Hochberg FDR
 //! * `pca`     — PCA on the PSI matrix
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 fn bench_bb_lrt(c: &mut Criterion) {
     let inc_a = vec![50.0_f64, 55.0, 48.0, 52.0, 51.0];

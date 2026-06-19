@@ -23,9 +23,9 @@ use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
+use crate::Strand;
 use crate::annotation::{Annotation, Exon};
 use crate::error::{UltiError, UltiResult};
-use crate::Strand;
 
 const CACHE_VERSION: u32 = 1;
 const CACHE_MAGIC: &[u8; 8] = b"ULTDSE01";
@@ -90,11 +90,17 @@ pub fn default_cache_path(source: &Path) -> PathBuf {
 
 /// True iff the cache exists and is at least as new as the source.
 pub fn is_fresh(cache: &Path, source: &Path) -> bool {
-    let cache_mtime = match File::open(cache).and_then(|f| f.metadata()).and_then(|m| m.modified()) {
+    let cache_mtime = match File::open(cache)
+        .and_then(|f| f.metadata())
+        .and_then(|m| m.modified())
+    {
         Ok(t) => t,
         Err(_) => return false,
     };
-    let src_mtime = match File::open(source).and_then(|f| f.metadata()).and_then(|m| m.modified()) {
+    let src_mtime = match File::open(source)
+        .and_then(|f| f.metadata())
+        .and_then(|m| m.modified())
+    {
         Ok(t) => t,
         Err(_) => return false,
     };
@@ -135,7 +141,8 @@ pub fn save(path: &Path, ann: &Annotation) -> UltiResult<()> {
         let f = File::create(&tmp).map_err(|e| UltiError::io(&tmp, e))?;
         let mut w = BufWriter::new(f);
         use std::io::Write;
-        w.write_all(CACHE_MAGIC).map_err(|e| UltiError::io(&tmp, e))?;
+        w.write_all(CACHE_MAGIC)
+            .map_err(|e| UltiError::io(&tmp, e))?;
         let cached = to_cached(ann);
         bincode::serialize_into(&mut w, &cached).map_err(|e| UltiError::Cache(e.to_string()))?;
         w.flush().map_err(|e| UltiError::io(&tmp, e))?;

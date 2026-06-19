@@ -27,7 +27,7 @@ use crate::config::RunConfig;
 use crate::error::UltiResult;
 use crate::events::ASEvent;
 use crate::output::ResultRow;
-use crate::pileup::{pileup_regions_with_opts, PileupOpts, Region};
+use crate::pileup::{PileupOpts, Region, pileup_regions_with_opts};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SashimiTrack {
@@ -111,18 +111,20 @@ pub fn build_top_event_sashimi(
     };
 
     // Per-sample pileup, requesting per-position depth vectors.
-    let opts = PileupOpts { record_per_position: true };
+    let opts = PileupOpts {
+        record_per_position: true,
+    };
     let per_sample_pp: Vec<Vec<Vec<u32>>> = cfg
         .samples
         .par_iter()
-        .map(|s| {
-            match pileup_regions_with_opts(&s.bam, &regions, cfg.reads.min_mapq, opts) {
+        .map(
+            |s| match pileup_regions_with_opts(&s.bam, &regions, cfg.reads.min_mapq, opts) {
                 Ok(p) => p
                     .per_position
                     .unwrap_or_else(|| regions.iter().map(|_| Vec::new()).collect()),
                 Err(_) => regions.iter().map(|_| Vec::new()).collect(),
-            }
-        })
+            },
+        )
         .collect();
 
     // Track downsample width — full-resolution arrays for a 10 kb window
@@ -319,4 +321,3 @@ pub struct SankeyLink {
     pub target: usize,
     pub value: f64,
 }
-

@@ -16,17 +16,12 @@ use statrs::distribution::{ChiSquared, ContinuousCDF, Normal};
 use crate::motif::SpliceMotif;
 use crate::stats::bh_fdr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ConsensusMethod {
+    #[default]
     Stouffer,
     Brown,
     WeightedFisher,
-}
-
-impl Default for ConsensusMethod {
-    fn default() -> Self {
-        ConsensusMethod::Stouffer
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,7 +177,11 @@ fn brown(ev: &EventEvidence, w: &Weights) -> (f64, u32) {
 }
 
 fn confidence_score(ev: &EventEvidence, q: f64) -> f64 {
-    let sig_term = if q.is_finite() { 1.0 - q.clamp(0.0, 1.0) } else { 0.0 };
+    let sig_term = if q.is_finite() {
+        1.0 - q.clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
     let motif_term = match ev.motif {
         Some(SpliceMotif::GtAg | SpliceMotif::GtAgReverse) => 1.0,
         Some(SpliceMotif::GcAg | SpliceMotif::GcAgReverse) => 0.85,
@@ -194,7 +193,11 @@ fn confidence_score(ev: &EventEvidence, q: f64) -> f64 {
     let repro = ev.replicate_reproducibility.clamp(0.0, 1.0);
     let pieces = [sig_term, motif_term, cov_term, repro];
     let n = pieces.len() as f64;
-    pieces.iter().map(|x| x.max(1e-6)).product::<f64>().powf(1.0 / n)
+    pieces
+        .iter()
+        .map(|x| x.max(1e-6))
+        .product::<f64>()
+        .powf(1.0 / n)
 }
 
 #[cfg(test)]
@@ -250,8 +253,11 @@ mod tests {
             p_glmm: Some(1e-4),
             ..Default::default()
         };
-        let fisher =
-            combine(&[ev.clone()], &Weights::default(), ConsensusMethod::WeightedFisher);
+        let fisher = combine(
+            std::slice::from_ref(&ev),
+            &Weights::default(),
+            ConsensusMethod::WeightedFisher,
+        );
         let brown = combine(&[ev], &Weights::default(), ConsensusMethod::Brown);
         assert!(brown[0].combined_p >= fisher[0].combined_p - 1e-9);
     }

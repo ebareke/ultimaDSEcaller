@@ -73,6 +73,7 @@ pub struct ASEvent {
 }
 
 impl ASEvent {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         gene_id: &str,
         chrom: &str,
@@ -152,13 +153,8 @@ fn detect_se(
             for md_edge in g.graph.edges(m_idx) {
                 let d_idx = md_edge.target();
                 let d = g.graph[d_idx];
-                let u_d_annotated = g
-                    .graph
-                    .edges_connecting(u_idx, d_idx)
-                    .next()
-                    .is_some();
-                let u_d_empirical =
-                    empirical.contains(&(g.chrom.clone(), u.end, d.start));
+                let u_d_annotated = g.graph.edges_connecting(u_idx, d_idx).next().is_some();
+                let u_d_empirical = empirical.contains(&(g.chrom.clone(), u.end, d.start));
                 if u_d_annotated || u_d_empirical {
                     let inc = vec![(u.end, m.start), (m.end, d.start)];
                     let exc = vec![(u.end, d.start)];
@@ -202,9 +198,7 @@ fn detect_mxe(
                 }
                 // Both must lead to a common downstream exon D, and there
                 // must be no edge between A1 and A2 in either direction.
-                if g.graph.contains_edge(a1_idx, a2_idx)
-                    || g.graph.contains_edge(a2_idx, a1_idx)
-                {
+                if g.graph.contains_edge(a1_idx, a2_idx) || g.graph.contains_edge(a2_idx, a1_idx) {
                     continue;
                 }
                 let a1_targets: HashSet<_> = g.graph.neighbors(a1_idx).collect();
@@ -212,7 +206,11 @@ fn detect_mxe(
                 for d_idx in a1_targets.intersection(&a2_targets) {
                     let d = g.graph[*d_idx];
                     // Order alternates so A1 is the 5' one in genomic coords.
-                    let (alt1, alt2) = if a1.start < a2.start { (a1, a2) } else { (a2, a1) };
+                    let (alt1, alt2) = if a1.start < a2.start {
+                        (a1, a2)
+                    } else {
+                        (a2, a1)
+                    };
                     let inc = vec![(u.end, alt1.start), (alt1.end, d.start)];
                     let exc = vec![(u.end, alt2.start), (alt2.end, d.start)];
                     out.push(ASEvent::new(
@@ -272,7 +270,11 @@ fn detect_alt_ss(g: &SpliceGraph, out: &mut Vec<ASEvent>, alt_on_end: bool) {
                 let (short, long) = if alt_on_end {
                     if e1.end < e2.end { (e1, e2) } else { (e2, e1) }
                 } else {
-                    if e1.start > e2.start { (e1, e2) } else { (e2, e1) }
+                    if e1.start > e2.start {
+                        (e1, e2)
+                    } else {
+                        (e2, e1)
+                    }
                 };
                 let s_idx = match g.exon_index.get(&short) {
                     Some(x) => *x,
@@ -324,7 +326,11 @@ fn detect_alt_ss(g: &SpliceGraph, out: &mut Vec<ASEvent>, alt_on_end: bool) {
                         &g.gene_id,
                         &g.chrom,
                         g.strand,
-                        if alt_on_end { EventKind::A5SS } else { EventKind::A3SS },
+                        if alt_on_end {
+                            EventKind::A5SS
+                        } else {
+                            EventKind::A3SS
+                        },
                         vec![short, long, partner],
                         inc,
                         exc,
@@ -407,7 +413,11 @@ fn detect_afe_ale(g: &SpliceGraph, out: &mut Vec<ASEvent>) {
             let n2: HashSet<_> = g.graph.neighbors(firsts[j]).collect();
             for d_idx in n1.intersection(&n2) {
                 let d = g.graph[*d_idx];
-                let (a, b) = if f1.start < f2.start { (f1, f2) } else { (f2, f1) };
+                let (a, b) = if f1.start < f2.start {
+                    (f1, f2)
+                } else {
+                    (f2, f1)
+                };
                 let inc = vec![(a.end, d.start)];
                 let exc = vec![(b.end, d.start)];
                 out.push(ASEvent::new(
@@ -441,7 +451,11 @@ fn detect_afe_ale(g: &SpliceGraph, out: &mut Vec<ASEvent>) {
                 .collect();
             for u_idx in p1.intersection(&p2) {
                 let u = g.graph[*u_idx];
-                let (a, b) = if l1.start < l2.start { (l1, l2) } else { (l2, l1) };
+                let (a, b) = if l1.start < l2.start {
+                    (l1, l2)
+                } else {
+                    (l2, l1)
+                };
                 let inc = vec![(u.end, a.start)];
                 let exc = vec![(u.end, b.start)];
                 out.push(ASEvent::new(

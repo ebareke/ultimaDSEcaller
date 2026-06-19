@@ -16,7 +16,7 @@ use crate::cli::Technology;
 use crate::config::{Contrast, RunConfig};
 use crate::events::{ASEvent, EventKind};
 use crate::junctions::JunctionMatrix;
-use crate::pileup::{pileup_regions, Region};
+use crate::pileup::{Region, pileup_regions};
 
 /// Per-event quantification for the whole cohort.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,11 +55,7 @@ pub struct ContrastSummary {
 }
 
 /// Quantify every detected event across the cohort.
-pub fn quantify(
-    cfg: &RunConfig,
-    events: &[ASEvent],
-    jm: &JunctionMatrix,
-) -> Vec<EventQuant> {
+pub fn quantify(cfg: &RunConfig, events: &[ASEvent], jm: &JunctionMatrix) -> Vec<EventQuant> {
     // Pre-index the junction matrix for O(1) lookup.
     let chrom_lookup: HashMap<(String, u64, u64), &Vec<f64>> = jm
         .counts
@@ -67,11 +63,7 @@ pub fn quantify(
         .map(|(j, v)| ((j.chrom.clone(), j.donor_end, j.acceptor_start), v))
         .collect();
 
-    let sample_to_group: Vec<&str> = cfg
-        .samples
-        .iter()
-        .map(|s| s.group.as_str())
-        .collect();
+    let sample_to_group: Vec<&str> = cfg.samples.iter().map(|s| s.group.as_str()).collect();
     let n = cfg.samples.len();
 
     // For every IR event with a retained-intron interval, compute per-sample
@@ -129,25 +121,24 @@ pub fn quantify(
                 .zip(exclusion.iter())
                 .map(|(i, e)| {
                     let t = i + e;
-                    if t > 0.0 {
-                        i / t
-                    } else {
-                        f64::NAN
-                    }
+                    if t > 0.0 { i / t } else { f64::NAN }
                 })
                 .collect();
 
-            let contrast_summary = cfg.contrast.as_ref().map(|c| {
-                summarize_contrast(c, &sample_to_group, &inclusion, &exclusion, &psi)
-            });
+            let contrast_summary = cfg
+                .contrast
+                .as_ref()
+                .map(|c| summarize_contrast(c, &sample_to_group, &inclusion, &exclusion, &psi));
 
-            let complexity =
-                (ev.inclusion_junctions.len() + ev.exclusion_junctions.len()) as u32;
+            let complexity = (ev.inclusion_junctions.len() + ev.exclusion_junctions.len()) as u32;
             let reproducibility = within_group_reproducibility(&sample_to_group, &psi);
             let confidence = compute_confidence(
                 &inclusion,
                 &exclusion,
-                contrast_summary.as_ref().map(|s| s.delta_psi).unwrap_or(0.0),
+                contrast_summary
+                    .as_ref()
+                    .map(|s| s.delta_psi)
+                    .unwrap_or(0.0),
                 reproducibility,
             );
 
@@ -219,11 +210,7 @@ fn nanmean(xs: &[f64]) -> f64 {
             n += 1;
         }
     }
-    if n == 0 {
-        f64::NAN
-    } else {
-        sum / n as f64
-    }
+    if n == 0 { f64::NAN } else { sum / n as f64 }
 }
 
 fn within_group_reproducibility(sample_groups: &[&str], psi: &[f64]) -> f64 {
@@ -345,8 +332,8 @@ fn compute_ir_coverage(
     let mut unique_regions: Vec<Region> = Vec::new();
     for r in &regions {
         let k = (r.chrom.clone(), r.start, r.end);
-        if !seen.contains_key(&k) {
-            seen.insert(k, unique_regions.len());
+        if let std::collections::hash_map::Entry::Vacant(e) = seen.entry(k) {
+            e.insert(unique_regions.len());
             unique_regions.push(r.clone());
         }
     }
@@ -356,12 +343,12 @@ fn compute_ir_coverage(
     let per_sample: Vec<Vec<f64>> = cfg
         .samples
         .par_iter()
-        .map(|s| {
-            match pileup_regions(&s.bam, &unique_regions, cfg.reads.min_mapq) {
+        .map(
+            |s| match pileup_regions(&s.bam, &unique_regions, cfg.reads.min_mapq) {
                 Ok(p) => p.mean_depth,
                 Err(_) => vec![0.0; unique_regions.len()],
-            }
-        })
+            },
+        )
         .collect();
 
     // Transpose into the (region -> per-sample) shape.
@@ -393,4 +380,3 @@ pub fn meets_coverage(quant: &EventQuant, min_cov_per_sample: u32) -> bool {
             .zip(cs.exclusion_denom.iter())
             .all(|(i, e)| i + e >= min_cov_f)
 }
-

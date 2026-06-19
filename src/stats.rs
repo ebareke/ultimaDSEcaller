@@ -50,19 +50,14 @@ pub struct PValue {
     pub test_used: TestUsed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TestUsed {
     BetaBinomialLRT,
     FisherExact,
     Glm,
     Glmm,
+    #[default]
     Insufficient,
-}
-
-impl Default for TestUsed {
-    fn default() -> Self {
-        TestUsed::Insufficient
-    }
 }
 
 /// Run the statistical test on every quantified event in parallel, then
@@ -117,7 +112,7 @@ pub fn test_all_with_method(quants: &[EventQuant], cfg: Option<&RunConfig>) -> V
     let adjusted = bh_fdr(&p_values);
 
     raw.into_iter()
-        .zip(adjusted.into_iter())
+        .zip(adjusted)
         .map(|((p, eff, used), q)| PValue {
             p_value: p,
             adjusted_p_value: q,
@@ -213,12 +208,7 @@ pub fn test_all_multi(quants: &[EventQuant], cfg: Option<&RunConfig>) -> Vec<Mul
         .collect()
 }
 
-pub fn test_one(
-    inc_a: &[f64],
-    exc_a: &[f64],
-    inc_b: &[f64],
-    exc_b: &[f64],
-) -> (f64, TestUsed) {
+pub fn test_one(inc_a: &[f64], exc_a: &[f64], inc_b: &[f64], exc_b: &[f64]) -> (f64, TestUsed) {
     let n_a = inc_a.len();
     let n_b = inc_b.len();
     if n_a == 0 || n_b == 0 {
@@ -267,12 +257,7 @@ pub fn test_one(
 
 /// GLM-based per-event test: logistic regression of (k, n-k) on a single
 /// binary indicator for `numerator` vs `denominator` group membership.
-pub fn test_one_glm(
-    inc_a: &[f64],
-    exc_a: &[f64],
-    inc_b: &[f64],
-    exc_b: &[f64],
-) -> (f64, TestUsed) {
+pub fn test_one_glm(inc_a: &[f64], exc_a: &[f64], inc_b: &[f64], exc_b: &[f64]) -> (f64, TestUsed) {
     let n_a = inc_a.len();
     let n_b = inc_b.len();
     if n_a == 0 || n_b == 0 {
@@ -407,8 +392,7 @@ fn bb_log_lik(alpha: f64, beta: f64, k: &[f64], n: &[f64]) -> f64 {
         if n_i <= 0.0 {
             continue;
         }
-        ll += ln_gamma(k_i + alpha) + ln_gamma(n_i - k_i + beta)
-            - ln_gamma(n_i + alpha + beta)
+        ll += ln_gamma(k_i + alpha) + ln_gamma(n_i - k_i + beta) - ln_gamma(n_i + alpha + beta)
             + ln_gamma(alpha + beta)
             - ln_gamma(alpha)
             - ln_gamma(beta);
@@ -451,19 +435,29 @@ fn nelder_mead_2d<F: Fn((f64, f64)) -> f64>(
     for _ in 0..max_iter {
         // Order by value ascending so simplex[0] is best.
         let mut idx = [0, 1, 2];
-        idx.sort_by(|&i, &j| vals[i].partial_cmp(&vals[j]).unwrap_or(std::cmp::Ordering::Equal));
+        idx.sort_by(|&i, &j| {
+            vals[i]
+                .partial_cmp(&vals[j])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         let (b, m, w) = (idx[0], idx[1], idx[2]);
         if (simplex[w].0 - simplex[b].0).hypot(simplex[w].1 - simplex[b].1) < tol {
             return simplex[b];
         }
         // Centroid of best two.
-        let c = ((simplex[b].0 + simplex[m].0) / 2.0, (simplex[b].1 + simplex[m].1) / 2.0);
+        let c = (
+            (simplex[b].0 + simplex[m].0) / 2.0,
+            (simplex[b].1 + simplex[m].1) / 2.0,
+        );
         // Reflect worst through centroid.
         let r = (2.0 * c.0 - simplex[w].0, 2.0 * c.1 - simplex[w].1);
         let fr = f(r);
         if fr < vals[b] {
             // Expand.
-            let e = (3.0 * c.0 - 2.0 * simplex[w].0, 3.0 * c.1 - 2.0 * simplex[w].1);
+            let e = (
+                3.0 * c.0 - 2.0 * simplex[w].0,
+                3.0 * c.1 - 2.0 * simplex[w].1,
+            );
             let fe = f(e);
             if fe < fr {
                 simplex[w] = e;
@@ -589,7 +583,9 @@ mod tests {
         // (verified against R 4.4 base::p.adjust)
         let p = [0.001, 0.008, 0.039, 0.041, 0.042, 0.060, 0.074, 0.205];
         let adj = bh_fdr(&p);
-        let expected = [0.00800, 0.03200, 0.06720, 0.06720, 0.06720, 0.08000, 0.08457, 0.20500];
+        let expected = [
+            0.00800, 0.03200, 0.06720, 0.06720, 0.06720, 0.08000, 0.08457, 0.20500,
+        ];
         for (a, e) in adj.iter().zip(expected.iter()) {
             assert!((a - e).abs() < 1e-3, "got {a}, expected {e}");
         }

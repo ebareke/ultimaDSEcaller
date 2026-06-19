@@ -155,9 +155,7 @@ impl ConfigFile {
                 serde_yaml::from_str(&raw).map_err(|e| UltiError::Config(e.to_string()))
             }
             "toml" => toml::from_str(&raw).map_err(|e| UltiError::Config(e.to_string())),
-            "json" => {
-                serde_json::from_str(&raw).map_err(|e| UltiError::Config(e.to_string()))
-            }
+            "json" => serde_json::from_str(&raw).map_err(|e| UltiError::Config(e.to_string())),
             other => Err(UltiError::Config(format!(
                 "unknown config extension `{other}` — use .yaml, .toml, or .json"
             ))),
@@ -221,9 +219,8 @@ pub fn read_sample_sheet(path: &Path) -> UltiResult<Vec<Sample>> {
             }
         }
         samples.push(Sample {
-            id: sample_id.ok_or_else(|| {
-                UltiError::Design(format!("row {row_idx}: missing `sample`"))
-            })?,
+            id: sample_id
+                .ok_or_else(|| UltiError::Design(format!("row {row_idx}: missing `sample`")))?,
             bam: bam.ok_or_else(|| UltiError::Design(format!("row {row_idx}: missing `bam`")))?,
             group: group
                 .ok_or_else(|| UltiError::Design(format!("row {row_idx}: missing `group`")))?,
@@ -261,10 +258,7 @@ pub fn resolve(args: &RunArgs) -> UltiResult<RunConfig> {
         .ok_or_else(|| UltiError::Config("missing --sample-sheet".into()))?;
     let samples = read_sample_sheet(&sample_sheet_path)?;
 
-    let tech = args
-        .tech
-        .or(cfg.tech)
-        .unwrap_or(Technology::Short);
+    let tech = args.tech.or(cfg.tech).unwrap_or(Technology::Short);
 
     let mut reads = cfg.reads.unwrap_or_else(|| ReadParams::for_tech(tech));
     if let Some(v) = args.min_mapq {

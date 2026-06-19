@@ -18,7 +18,10 @@ const TICK_INTERVAL_MS: u64 = 100;
 
 /// Returns true when progress bars are suppressed (env, non-TTY, or CI).
 pub fn suppressed() -> bool {
-    if std::env::var("ULTIMADSE_NO_PROGRESS").map(|v| v == "1").unwrap_or(false) {
+    if std::env::var("ULTIMADSE_NO_PROGRESS")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
         return true;
     }
     !std::io::stderr().is_terminal()
@@ -71,7 +74,9 @@ impl MultiBar {
         if suppressed() {
             mp.set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
-        MultiBar { inner: Arc::new(mp) }
+        MultiBar {
+            inner: Arc::new(mp),
+        }
     }
 
     pub fn add_bar(&self, label: &str, total: u64) -> ProgressBar {

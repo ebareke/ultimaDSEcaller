@@ -52,11 +52,7 @@ pub struct PileupOpts {
 /// Dispatcher — picks indexed vs streaming based on availability and the
 /// fraction of the genome the regions cover. Uses default `PileupOpts`
 /// (no per-position output) for backward compatibility.
-pub fn pileup_regions(
-    path: &Path,
-    regions: &[Region],
-    min_mapq: u8,
-) -> UltiResult<PileupResult> {
+pub fn pileup_regions(path: &Path, regions: &[Region], min_mapq: u8) -> UltiResult<PileupResult> {
     pileup_regions_with_opts(path, regions, min_mapq, PileupOpts::default())
 }
 
@@ -72,16 +68,18 @@ pub fn pileup_regions_with_opts(
         return Ok(PileupResult {
             mean_depth: Vec::new(),
             total_match_bases: Vec::new(),
-            per_position: if opts.record_per_position { Some(Vec::new()) } else { None },
+            per_position: if opts.record_per_position {
+                Some(Vec::new())
+            } else {
+                None
+            },
         });
     }
     if has_index(path) && small_query(regions) {
         match pileup_regions_indexed(path, regions, min_mapq, opts) {
             Ok(r) => return Ok(r),
             Err(e) => {
-                tracing::warn!(
-                    "indexed pileup failed ({e}); falling back to streaming"
-                );
+                tracing::warn!("indexed pileup failed ({e}); falling back to streaming");
             }
         }
     }
@@ -109,7 +107,10 @@ fn small_query(regions: &[Region]) -> bool {
     // Heuristic: indexed access wins when total region length is small.
     // Threshold: 100 Mb of total query span (covers e.g. all introns of a
     // few thousand human genes — exactly the IR / sashimi use case).
-    let total: u64 = regions.iter().map(|r| r.end.saturating_sub(r.start) + 1).sum();
+    let total: u64 = regions
+        .iter()
+        .map(|r| r.end.saturating_sub(r.start) + 1)
+        .sum();
     total < 100_000_000
 }
 
@@ -148,18 +149,15 @@ pub fn pileup_regions_indexed(
         None
     };
     for (region_idx, r) in regions.iter().enumerate() {
-        let start = NPos::try_from(r.start.max(1) as usize).map_err(|_| {
-            UltiError::Alignment {
-                path: path.into(),
-                message: "region start out of range".into(),
-            }
+        let start = NPos::try_from(r.start.max(1) as usize).map_err(|_| UltiError::Alignment {
+            path: path.into(),
+            message: "region start out of range".into(),
         })?;
-        let end = NPos::try_from(r.end.max(r.start) as usize).map_err(|_| {
-            UltiError::Alignment {
+        let end =
+            NPos::try_from(r.end.max(r.start) as usize).map_err(|_| UltiError::Alignment {
                 path: path.into(),
                 message: "region end out of range".into(),
-            }
-        })?;
+            })?;
         let region = NRegion::new(r.chrom.as_bytes().to_vec(), start..=end);
         let query = match reader.query(&header, &region) {
             Ok(q) => q,

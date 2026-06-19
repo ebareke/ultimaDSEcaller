@@ -27,9 +27,9 @@
 //!    alternative last exons differ in their 3'-end position by ≥ 50 bp
 //!    (a soft proxy for distinct polyA sites in the absence of 3'-seq).
 //! 10. **TandemUtr** — a special case of (9) where the alternative last
-//!    exons share a 5' end but differ only in 3' extension.
+//!     exons share a 5' end but differ only in 3' extension.
 //! 11. **FusionAssociated** — junctions implied by a user-supplied fusion
-//!    BEDPE file (see [`load_fusion_bedpe`]).
+//!     BEDPE file (see [`load_fusion_bedpe`]).
 //!
 //! Isoform switching is handled separately as
 //! [`crate::longread::differential_usage`] since it is a *test* on the
@@ -47,10 +47,10 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::Position;
 use crate::annotation::{Annotation, Exon, SpliceGraph};
 use crate::error::{UltiError, UltiResult};
 use crate::junctions::JunctionMatrix;
-use crate::Position;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AdvancedEventKind {
@@ -202,11 +202,8 @@ fn detect_multi_exon_skipping(ann: &Annotation, jm: &JunctionMatrix) -> Vec<Adva
         }
     }
     for g in ann.genes.values() {
-        let mut exon_intervals: Vec<(Position, Position)> = g
-            .exon_index
-            .keys()
-            .map(|e| (e.start, e.end))
-            .collect();
+        let mut exon_intervals: Vec<(Position, Position)> =
+            g.exon_index.keys().map(|e| (e.start, e.end)).collect();
         exon_intervals.sort();
         for (chrom, donor, acceptor) in &all_juncs {
             if chrom != &g.chrom {
@@ -288,7 +285,7 @@ fn detect_nested(ann: &Annotation, jm: &JunctionMatrix) -> Vec<AdvancedEvent> {
     }
     for (chrom, mut juncs) in by_chrom {
         // f64 has no total order, so sort by the two integer coordinates only.
-        juncs.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+        juncs.sort_by_key(|a| (a.0, a.1));
         for i in 0..juncs.len() {
             for k in 0..juncs.len() {
                 if i == k {
@@ -418,15 +415,19 @@ fn anchor_context(g: &SpliceGraph, pos: Position) -> AnchorContext {
         }
     }
     // Inside a gene-spanning extent but not in any exon → intron.
-    let (gmin, gmax) = match g.exon_index.keys().fold(None, |acc: Option<(Position, Position)>, ex| {
-        Some(match acc {
-            None => (ex.start, ex.end),
-            Some((lo, hi)) => (lo.min(ex.start), hi.max(ex.end)),
-        })
-    }) {
-        Some(b) => b,
-        None => return AnchorContext::Outside,
-    };
+    let (gmin, gmax) =
+        match g
+            .exon_index
+            .keys()
+            .fold(None, |acc: Option<(Position, Position)>, ex| {
+                Some(match acc {
+                    None => (ex.start, ex.end),
+                    Some((lo, hi)) => (lo.min(ex.start), hi.max(ex.end)),
+                })
+            }) {
+            Some(b) => b,
+            None => return AnchorContext::Outside,
+        };
     if pos >= gmin && pos <= gmax {
         AnchorContext::InsideIntron
     } else {
@@ -491,8 +492,7 @@ fn detect_alt_polya_and_tandem(ann: &Annotation, params: &AdvancedParams) -> Vec
         for i in 0..vec.len() {
             for k in (i + 1)..vec.len() {
                 let same_start = vec[i].start == vec[k].start;
-                let end_diff =
-                    (vec[i].end as i64 - vec[k].end as i64).unsigned_abs();
+                let end_diff = (vec[i].end as i64 - vec[k].end as i64).unsigned_abs();
                 if same_start && end_diff >= params.tandem_utr_min_extension {
                     out.push(AdvancedEvent {
                         event_id: next_id(&mut counter_utr, AdvancedEventKind::TandemUtr),
@@ -580,34 +580,26 @@ pub fn load_fusion_bedpe(path: &Path) -> UltiResult<Vec<AdvancedEvent>> {
             continue;
         }
         let chrom_a = fields[0].to_string();
-        let start_a: u64 = fields[1].parse().map_err(|_| {
-            UltiError::Annotation {
-                path: path.into(),
-                line: lineno,
-                message: "BEDPE start_a not an integer".into(),
-            }
+        let start_a: u64 = fields[1].parse().map_err(|_| UltiError::Annotation {
+            path: path.into(),
+            line: lineno,
+            message: "BEDPE start_a not an integer".into(),
         })?;
-        let end_a: u64 = fields[2].parse().map_err(|_| {
-            UltiError::Annotation {
-                path: path.into(),
-                line: lineno,
-                message: "BEDPE end_a not an integer".into(),
-            }
+        let end_a: u64 = fields[2].parse().map_err(|_| UltiError::Annotation {
+            path: path.into(),
+            line: lineno,
+            message: "BEDPE end_a not an integer".into(),
         })?;
         let chrom_b = fields[3].to_string();
-        let start_b: u64 = fields[4].parse().map_err(|_| {
-            UltiError::Annotation {
-                path: path.into(),
-                line: lineno,
-                message: "BEDPE start_b not an integer".into(),
-            }
+        let start_b: u64 = fields[4].parse().map_err(|_| UltiError::Annotation {
+            path: path.into(),
+            line: lineno,
+            message: "BEDPE start_b not an integer".into(),
         })?;
-        let end_b: u64 = fields[5].parse().map_err(|_| {
-            UltiError::Annotation {
-                path: path.into(),
-                line: lineno,
-                message: "BEDPE end_b not an integer".into(),
-            }
+        let end_b: u64 = fields[5].parse().map_err(|_| UltiError::Annotation {
+            path: path.into(),
+            line: lineno,
+            message: "BEDPE end_b not an integer".into(),
         })?;
         out.push(AdvancedEvent {
             event_id: next_id(&mut counter, AdvancedEventKind::FusionAssociated),
@@ -669,6 +661,10 @@ chr1\ts\texon\t50000\t50100\t.\t+\t.\tgene_id \"G1\"; transcript_id \"T2\";
         let tmp = write_gtf(gtf);
         let ann = crate::annotation::parse(tmp.path()).unwrap();
         let events = detect_alt_promoter(&ann, &AdvancedParams::default());
-        assert!(events.iter().any(|e| e.kind == AdvancedEventKind::AlternativePromoter));
+        assert!(
+            events
+                .iter()
+                .any(|e| e.kind == AdvancedEventKind::AlternativePromoter)
+        );
     }
 }

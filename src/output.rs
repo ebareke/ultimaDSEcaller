@@ -93,18 +93,14 @@ pub fn passes_filter(row: &ResultRow, f: &Filters) -> bool {
     if row.confidence < f.min_confidence {
         return false;
     }
-    let mean_cov = 0.5
-        * (row.mean_coverage_numerator + row.mean_coverage_denominator);
+    let mean_cov = 0.5 * (row.mean_coverage_numerator + row.mean_coverage_denominator);
     if mean_cov < f.min_coverage as f64 {
         return false;
     }
     true
 }
 
-pub fn write_all(
-    cfg: &RunConfig,
-    rows: &[ResultRow],
-) -> UltiResult<()> {
+pub fn write_all(cfg: &RunConfig, rows: &[ResultRow]) -> UltiResult<()> {
     write_all_with_payload(cfg, rows, |payload| payload)
 }
 
@@ -112,11 +108,7 @@ pub fn write_all(
 /// (PCA, UMAP, sashimi, isoform Sankey, advanced-event counts) before
 /// serialization. The closure receives a freshly-built payload and
 /// returns the version to write.
-pub fn write_all_with_payload<F>(
-    cfg: &RunConfig,
-    rows: &[ResultRow],
-    augment: F,
-) -> UltiResult<()>
+pub fn write_all_with_payload<F>(cfg: &RunConfig, rows: &[ResultRow], augment: F) -> UltiResult<()>
 where
     F: FnOnce(ReportPayload) -> ReportPayload,
 {
@@ -270,9 +262,10 @@ fn write_parquet(path: &Path, rows: &[ResultRow]) -> UltiResult<()> {
             REQUIRED BYTE_ARRAY test_used (UTF8);
         }
     ";
-    let schema = Arc::new(parse_message_type(schema_str).map_err(|e| {
-        UltiError::Other(anyhow::anyhow!("parquet schema parse: {e}"))
-    })?);
+    let schema = Arc::new(
+        parse_message_type(schema_str)
+            .map_err(|e| UltiError::Other(anyhow::anyhow!("parquet schema parse: {e}")))?,
+    );
     let props = Arc::new(
         WriterProperties::builder()
             // Snappy is the codec enabled in Cargo.toml (`snap` feature);
@@ -300,7 +293,8 @@ fn write_parquet(path: &Path, rows: &[ResultRow]) -> UltiResult<()> {
             col.typed::<parquet::data_type::ByteArrayType>()
                 .write_batch(&values, None, None)
                 .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
-            col.close().map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
+            col.close()
+                .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
         }};
     }
     macro_rules! write_i64_col {
@@ -313,7 +307,8 @@ fn write_parquet(path: &Path, rows: &[ResultRow]) -> UltiResult<()> {
             col.typed::<parquet::data_type::Int64Type>()
                 .write_batch(&values, None, None)
                 .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
-            col.close().map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
+            col.close()
+                .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
         }};
     }
     macro_rules! write_f64_col {
@@ -326,7 +321,8 @@ fn write_parquet(path: &Path, rows: &[ResultRow]) -> UltiResult<()> {
             col.typed::<parquet::data_type::DoubleType>()
                 .write_batch(&values, None, None)
                 .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
-            col.close().map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
+            col.close()
+                .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
         }};
     }
 
@@ -579,10 +575,9 @@ pub fn build_report_payload(
         .iter()
         .filter(|r| r.adjusted_p_value.is_finite())
         .map(|r| {
-            let total =
-                (r.mean_coverage_numerator + r.mean_coverage_denominator).max(1e-6);
-            let p_num = r.mean_psi_numerator.max(1e-6).min(1.0 - 1e-6);
-            let p_denom = r.mean_psi_denominator.max(1e-6).min(1.0 - 1e-6);
+            let total = (r.mean_coverage_numerator + r.mean_coverage_denominator).max(1e-6);
+            let p_num = r.mean_psi_numerator.clamp(1e-6, 1.0 - 1e-6);
+            let p_denom = r.mean_psi_denominator.clamp(1e-6, 1.0 - 1e-6);
             let log_fc = (p_num / (1.0 - p_num)).ln() - (p_denom / (1.0 - p_denom)).ln();
             MaPoint {
                 event_id: r.event_id.clone(),
@@ -708,7 +703,7 @@ pub fn build_junction_graphs(
         }
     }
     let mut ranked: Vec<(String, usize)> = counts.into_iter().collect();
-    ranked.sort_by(|a, b| b.1.cmp(&a.1));
+    ranked.sort_by_key(|b| std::cmp::Reverse(b.1));
     let mut out = Vec::new();
     for (gene_id, _) in ranked.into_iter().take(top_n_genes) {
         let Some(g) = ann.genes.get(&gene_id) else {
@@ -758,14 +753,15 @@ fn mean_finite<I: Iterator<Item = f64>>(it: I) -> f64 {
             n += 1;
         }
     }
-    if n == 0 {
-        f64::NAN
-    } else {
-        sum / n as f64
-    }
+    if n == 0 { f64::NAN } else { sum / n as f64 }
 }
 
-fn histogram<I: Iterator<Item = f64>>(values: I, lo: f64, hi: f64, bins: usize) -> Vec<(f64, usize)> {
+fn histogram<I: Iterator<Item = f64>>(
+    values: I,
+    lo: f64,
+    hi: f64,
+    bins: usize,
+) -> Vec<(f64, usize)> {
     let mut counts = vec![0usize; bins];
     let width = (hi - lo) / bins as f64;
     for v in values {

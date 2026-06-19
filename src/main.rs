@@ -26,8 +26,7 @@ fn main() -> Result<()> {
         Command::DumpAnnotation(args) => dump_annotation(args),
         Command::Junctions(args) => junctions_cmd(args),
         Command::Report(args) => {
-            report::render_from_json(&args.input, &args.out)
-                .context("rendering HTML report")?;
+            report::render_from_json(&args.input, &args.out).context("rendering HTML report")?;
             tracing::info!("wrote HTML report to {:?}", args.out);
             Ok(())
         }
@@ -82,7 +81,9 @@ fn run(args: ultimadsecaller::cli::RunArgs) -> Result<()> {
         "ultimaDSEcaller starting — {} samples, tech={:?}, contrast={:?}",
         cfg.samples.len(),
         cfg.tech,
-        cfg.contrast.as_ref().map(|c| format!("{}:{}-{}", c.variable, c.numerator, c.denominator)),
+        cfg.contrast
+            .as_ref()
+            .map(|c| format!("{}:{}-{}", c.variable, c.numerator, c.denominator)),
     );
 
     // --- Annotation (cached by default) ---
@@ -169,12 +170,7 @@ fn run(args: ultimadsecaller::cli::RunArgs) -> Result<()> {
 
     // --- Consensus engine (combines BB-LRT/GLM/GLMM/Fisher/DIU + motif) ---
     let _ = &pvals; // kept for the headline rows; consensus runs its own multi-test sweep.
-    let consensus_results = build_consensus(
-        &cfg,
-        &quants,
-        reference.as_ref(),
-        consensus_method,
-    );
+    let consensus_results = build_consensus(&cfg, &quants, reference.as_ref(), consensus_method);
     tracing::info!(
         "consensus engine combined {} events via {:?}",
         consensus_results.len(),
@@ -182,22 +178,21 @@ fn run(args: ultimadsecaller::cli::RunArgs) -> Result<()> {
     );
 
     // --- Protein consequence (if reference + CDS available) ---
-    let protein_consequences: Vec<output::ProteinAnnotation> = if let (Some(cat), refq) =
-        (cds_catalog.as_ref(), reference.as_ref())
-    {
-        evs.iter()
-            .map(|e| {
-                let c = protein::predict_consequence(e, cat, refq);
-                output::ProteinAnnotation {
-                    event_id: e.event_id.clone(),
-                    gene_id: e.gene_id.clone(),
-                    consequence: c.short().into(),
-                }
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let protein_consequences: Vec<output::ProteinAnnotation> =
+        if let (Some(cat), refq) = (cds_catalog.as_ref(), reference.as_ref()) {
+            evs.iter()
+                .map(|e| {
+                    let c = protein::predict_consequence(e, cat, refq);
+                    output::ProteinAnnotation {
+                        event_id: e.event_id.clone(),
+                        gene_id: e.gene_id.clone(),
+                        consequence: c.short().into(),
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
 
     // Advanced events (cryptic, MSE, MIR, recursive, nested, partial exon,
     // exonic-intronic hybrid, alt promoter, alt polyA, tandem UTR, fusion).
@@ -220,8 +215,7 @@ fn run(args: ultimadsecaller::cli::RunArgs) -> Result<()> {
     // Per-sample PSI matrix for embeddings.
     let psi_rows: Vec<Vec<f64>> = quants.iter().map(|q| q.psi.clone()).collect();
     let sample_ids: Vec<String> = cfg.samples.iter().map(|s| s.id.clone()).collect();
-    let (pca_emb, umap_emb) = if let Some(m) = embedding::build_psi_matrix(&sample_ids, &psi_rows)
-    {
+    let (pca_emb, umap_emb) = if let Some(m) = embedding::build_psi_matrix(&sample_ids, &psi_rows) {
         let k = (sample_ids.len() / 3).max(2);
         (
             Some(embedding::pca_2d(&m, &sample_ids)),
@@ -232,11 +226,11 @@ fn run(args: ultimadsecaller::cli::RunArgs) -> Result<()> {
     };
 
     // Sashimi tracks for top events. One pileup pass per sample.
-    let sashimi_tracks =
-        sashimi::build_top_event_sashimi(&cfg, &evs, &rows, 3).unwrap_or_default();
+    let sashimi_tracks = sashimi::build_top_event_sashimi(&cfg, &evs, &rows, 3).unwrap_or_default();
 
     // Long-read isoforms + differential usage Sankey.
-    let isoform_catalog = longread::reconstruct(&cfg, &ann).unwrap_or_else(|_| longread::IsoformCatalog::empty());
+    let isoform_catalog =
+        longread::reconstruct(&cfg, &ann).unwrap_or_else(|_| longread::IsoformCatalog::empty());
     let sample_groups: Vec<&str> = cfg.samples.iter().map(|s| s.group.as_str()).collect();
     let (sankey, diu_records) = if let Some(c) = cfg.contrast.as_ref() {
         let s = sashimi::build_isoform_sankey(
@@ -507,10 +501,7 @@ fn write_advanced_events_table(
     use std::io::Write;
     let f = std::fs::File::create(path)?;
     let mut w = std::io::BufWriter::new(f);
-    writeln!(
-        w,
-        "event_id\tgene_id\tchrom\tkind\tcoords\tsupport\tnotes"
-    )?;
+    writeln!(w, "event_id\tgene_id\tchrom\tkind\tcoords\tsupport\tnotes")?;
     for e in events {
         let coords = e
             .coords
@@ -563,8 +554,8 @@ fn dump_annotation(args: ultimadsecaller::cli::DumpAnnotationArgs) -> Result<()>
 }
 
 fn junctions_cmd(args: ultimadsecaller::cli::JunctionsArgs) -> Result<()> {
-    use ultimadsecaller::cli::MultimapStrategy;
     use std::io::Write;
+    use ultimadsecaller::cli::MultimapStrategy;
 
     let f = std::fs::File::create(&args.out)?;
     let mut w = std::io::BufWriter::new(f);

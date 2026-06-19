@@ -56,7 +56,10 @@ chr1\ts\texon\t500\t600\t.\t+\t.\tgene_id \"G1\"; transcript_id \"T2\";
 ";
     let tmp = write_gtf(gtf);
     let ann = annotation::parse(tmp.path()).unwrap();
-    let jm = JunctionMatrix { samples: vec!["s1".into()], counts: HashMap::new() };
+    let jm = JunctionMatrix {
+        samples: vec!["s1".into()],
+        counts: HashMap::new(),
+    };
     let evs = events::detect_all(&ann, &jm);
     let a5: Vec<_> = evs.iter().filter(|e| e.kind == EventKind::A5SS).collect();
     assert!(!a5.is_empty(), "should detect at least one A5SS event");

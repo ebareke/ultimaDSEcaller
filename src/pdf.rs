@@ -65,12 +65,12 @@ pub fn render(payload: &ReportPayload, out: &Path) -> UltiResult<()> {
         format!("Annotation: {}", run.annotation_path.display()),
         format!("Samples:    {}", run.n_samples),
         format!("Groups:     {}", run.n_groups),
-        format!("Contrast:   {}", run.contrast.clone().unwrap_or_else(|| "(none)".into())),
-        format!("Technology: {}", run.tech),
         format!(
-            "Total events:           {}",
-            payload.summary.events_total
+            "Contrast:   {}",
+            run.contrast.clone().unwrap_or_else(|| "(none)".into())
         ),
+        format!("Technology: {}", run.tech),
+        format!("Total events:           {}", payload.summary.events_total),
         format!(
             "High-confidence events: {}",
             payload.summary.events_high_confidence

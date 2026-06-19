@@ -29,6 +29,8 @@ pub struct Cli {
 }
 
 #[derive(Subcommand, Debug)]
+// clap parses this once at startup; variant size difference is irrelevant.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     /// End-to-end pipeline: detect → quantify → test → report.
     Run(RunArgs),
@@ -247,17 +249,13 @@ pub enum Technology {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum MultimapStrategy {
     /// Discard reads with NH > 1 (most conservative; mirrors rMATS default).
     Discard,
     /// Use a primary-alignment-only count (recommended for short reads).
+    #[default]
     Primary,
     /// Weight each alignment by 1/NH (fractional counting).
     Fractional,
-}
-
-impl Default for MultimapStrategy {
-    fn default() -> Self {
-        MultimapStrategy::Primary
-    }
 }

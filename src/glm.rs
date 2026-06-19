@@ -69,9 +69,7 @@ pub struct WaldResult {
 pub fn fit_glm(y: &[f64], n: &[f64], x: &[Vec<f64>]) -> UltiResult<GlmFit> {
     let n_obs = y.len();
     if n_obs == 0 || n.len() != n_obs || x.len() != n_obs {
-        return Err(UltiError::Stats(
-            "fit_glm: mismatched input lengths".into(),
-        ));
+        return Err(UltiError::Stats("fit_glm: mismatched input lengths".into()));
     }
     let p = x[0].len();
     if p == 0 {
@@ -128,7 +126,7 @@ pub fn fit_glm(y: &[f64], n: &[f64], x: &[Vec<f64>]) -> UltiResult<GlmFit> {
             None => {
                 return Err(UltiError::Stats(
                     "fit_glm: design matrix appears singular".into(),
-                ))
+                ));
             }
         };
         // Store vcov = (XᵀWX)^(-1)
@@ -137,7 +135,7 @@ pub fn fit_glm(y: &[f64], n: &[f64], x: &[Vec<f64>]) -> UltiResult<GlmFit> {
             None => {
                 return Err(UltiError::Stats(
                     "fit_glm: cannot invert weighted normal matrix".into(),
-                ))
+                ));
             }
         }
 
@@ -177,12 +175,7 @@ pub fn fit_glm(y: &[f64], n: &[f64], x: &[Vec<f64>]) -> UltiResult<GlmFit> {
 /// 1. Fix u, fit β by IRLS (a single weighted least squares step).
 /// 2. Fix β, update u_g by ridge regression with penalty 1/σ².
 /// 3. Re-estimate σ² from u via method of moments.
-pub fn fit_glmm(
-    y: &[f64],
-    n: &[f64],
-    x: &[Vec<f64>],
-    group_id: &[usize],
-) -> UltiResult<GlmmFit> {
+pub fn fit_glmm(y: &[f64], n: &[f64], x: &[Vec<f64>], group_id: &[usize]) -> UltiResult<GlmmFit> {
     let n_obs = y.len();
     if n_obs == 0 || n.len() != n_obs || x.len() != n_obs || group_id.len() != n_obs {
         return Err(UltiError::Stats(
@@ -239,7 +232,7 @@ pub fn fit_glmm(
             None => {
                 return Err(UltiError::Stats(
                     "fit_glmm: design matrix appears singular".into(),
-                ))
+                ));
             }
         };
         vcov = match xtw_x.try_inverse() {
@@ -268,15 +261,13 @@ pub fn fit_glmm(
         // Step 3: σ² update by MoM.
         let sigma2_new = if n_groups >= 2 {
             let mean = u_new.iter().sum::<f64>() / n_groups as f64;
-            let var = u_new.iter().map(|x| (x - mean).powi(2)).sum::<f64>()
-                / (n_groups - 1) as f64;
+            let var = u_new.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (n_groups - 1) as f64;
             var.max(1e-6)
         } else {
             sigma2
         };
 
-        let diff = (&beta_new - &beta).norm() + (&u_new - &u).norm()
-            + (sigma2_new - sigma2).abs();
+        let diff = (&beta_new - &beta).norm() + (&u_new - &u).norm() + (sigma2_new - sigma2).abs();
         beta = beta_new;
         u = u_new;
         sigma2 = sigma2_new;

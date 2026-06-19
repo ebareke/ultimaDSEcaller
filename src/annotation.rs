@@ -28,7 +28,6 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use rust_lapper::{Interval, Lapper};
 use serde::{Deserialize, Serialize};
 
-
 use crate::error::{UltiError, UltiResult};
 use crate::{Position, Strand};
 
@@ -43,6 +42,12 @@ impl Exon {
     #[inline]
     pub fn len(&self) -> Position {
         self.end.saturating_sub(self.start) + 1
+    }
+
+    /// True for an invalid (reversed) interval; a real exon spans >= 1 base.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.end < self.start
     }
 }
 
@@ -166,11 +171,7 @@ struct RawExon {
     transcript_id: String,
 }
 
-fn read_exons<R: BufRead>(
-    reader: R,
-    format: Format,
-    path: &Path,
-) -> UltiResult<Vec<RawExon>> {
+fn read_exons<R: BufRead>(reader: R, format: Format, path: &Path) -> UltiResult<Vec<RawExon>> {
     let mut out = Vec::new();
     for (i, line) in reader.lines().enumerate() {
         let line = line.map_err(|e| UltiError::io(path, e))?;
@@ -199,10 +200,10 @@ fn read_exons<R: BufRead>(
             Format::Gtf => parse_gtf_attrs(attrs),
             Format::Gff3 => parse_gff3_attrs(attrs),
         };
-        let gene_id = gene_id
-            .ok_or_else(|| ann_err(path, i, "exon record missing gene_id / Parent"))?;
-        let tx_id = tx_id
-            .ok_or_else(|| ann_err(path, i, "exon record missing transcript_id / Parent"))?;
+        let gene_id =
+            gene_id.ok_or_else(|| ann_err(path, i, "exon record missing gene_id / Parent"))?;
+        let tx_id =
+            tx_id.ok_or_else(|| ann_err(path, i, "exon record missing transcript_id / Parent"))?;
         out.push(RawExon {
             chrom: chrom.to_string(),
             start,
@@ -363,7 +364,6 @@ fn build_from_seeds(seeds: Vec<GeneSeed>) -> Annotation {
         transcripts,
     } in seeds
     {
-
         // 2) Collect unique exons (by tuple) — these become nodes.
         let unique_exons: HashSet<Exon> = transcripts
             .values()
@@ -421,7 +421,10 @@ fn build_from_seeds(seeds: Vec<GeneSeed>) -> Annotation {
             .collect();
         let lapper = Lapper::new(intervals);
 
-        gene_by_chrom.entry(chrom.clone()).or_default().push(gene_id.clone());
+        gene_by_chrom
+            .entry(chrom.clone())
+            .or_default()
+            .push(gene_id.clone());
 
         genes.insert(
             gene_id.clone(),
@@ -438,7 +441,10 @@ fn build_from_seeds(seeds: Vec<GeneSeed>) -> Annotation {
         );
     }
 
-    Annotation { genes, gene_by_chrom }
+    Annotation {
+        genes,
+        gene_by_chrom,
+    }
 }
 
 #[cfg(test)]
@@ -447,10 +453,7 @@ mod tests {
 
     fn write_gtf(s: &str) -> tempfile::NamedTempFile {
         use std::io::Write;
-        let mut f = tempfile::Builder::new()
-            .suffix(".gtf")
-            .tempfile()
-            .unwrap();
+        let mut f = tempfile::Builder::new().suffix(".gtf").tempfile().unwrap();
         f.write_all(s.as_bytes()).unwrap();
         f
     }

@@ -101,10 +101,7 @@ impl Formula {
     /// Build the n×p design matrix from a slice of samples. Categorical
     /// variables are treatment-coded (first level as reference). Numeric
     /// variables pass through as-is.
-    pub fn design_matrix(
-        &self,
-        samples: &[Sample],
-    ) -> UltiResult<(Vec<String>, Vec<Vec<f64>>)> {
+    pub fn design_matrix(&self, samples: &[Sample]) -> UltiResult<(Vec<String>, Vec<Vec<f64>>)> {
         let vars = self.variables();
         let mut levels: BTreeMap<String, Vec<String>> = BTreeMap::new();
         let mut numeric: BTreeMap<String, Vec<f64>> = BTreeMap::new();
@@ -153,7 +150,13 @@ impl Formula {
                             col_names.push(format!("{v}={level}"));
                             let vals: Vec<f64> = samples
                                 .iter()
-                                .map(|s| if sample_value(s, v) == *level { 1.0 } else { 0.0 })
+                                .map(|s| {
+                                    if sample_value(s, v) == *level {
+                                        1.0
+                                    } else {
+                                        0.0
+                                    }
+                                })
                                 .collect();
                             col_values.push(vals);
                         }
@@ -165,9 +168,7 @@ impl Formula {
                     for (na, va) in &a_cols {
                         for (nb, vb) in &b_cols {
                             col_names.push(format!("{na}:{nb}"));
-                            col_values.push(
-                                va.iter().zip(vb.iter()).map(|(x, y)| x * y).collect(),
-                            );
+                            col_values.push(va.iter().zip(vb.iter()).map(|(x, y)| x * y).collect());
                         }
                     }
                 }
@@ -242,7 +243,13 @@ fn expand_term(
             .map(|level| {
                 let col: Vec<f64> = samples
                     .iter()
-                    .map(|s| if sample_value(s, name) == *level { 1.0 } else { 0.0 })
+                    .map(|s| {
+                        if sample_value(s, name) == *level {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    })
                     .collect();
                 (format!("{name}={level}"), col)
             })

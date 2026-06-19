@@ -26,10 +26,10 @@ use std::collections::HashMap;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::Position;
 use crate::annotation::Annotation;
 use crate::config::RunConfig;
 use crate::error::{UltiError, UltiResult};
-use crate::Position;
 
 /// A reconstructed transcript isoform.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -286,10 +286,7 @@ fn read_chains(path: &std::path::Path, min_mapq: u8) -> UltiResult<HashMap<Signa
                 _ => {}
             }
         }
-        let sig = Signature {
-            chrom,
-            junctions,
-        };
+        let sig = Signature { chrom, junctions };
         *counts.entry(sig).or_insert(0) += 1;
     }
     Ok(counts)
@@ -320,7 +317,7 @@ pub fn intron_coverage(
     chrom: &str,
     intron: (Position, Position),
 ) -> UltiResult<f64> {
-    use crate::pileup::{pileup_regions, Region};
+    use crate::pileup::{Region, pileup_regions};
     let result = pileup_regions(
         bam,
         &[Region {
@@ -404,7 +401,11 @@ pub fn differential_usage(
                 isoform_id: isos[i].id.clone(),
                 num_count: num_counts[i],
                 denom_count: denom_counts[i],
-                num_fraction: if total_num > 0.0 { num_counts[i] / total_num } else { 0.0 },
+                num_fraction: if total_num > 0.0 {
+                    num_counts[i] / total_num
+                } else {
+                    0.0
+                },
                 denom_fraction: if total_denom > 0.0 {
                     denom_counts[i] / total_denom
                 } else {

@@ -25,8 +25,7 @@ use crate::output::ReportPayload;
 const TEMPLATE: &str = include_str!("report_template.html");
 
 pub fn render(payload: &ReportPayload, out: &Path) -> UltiResult<()> {
-    let json = serde_json::to_string(payload)
-        .map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
+    let json = serde_json::to_string(payload).map_err(|e| UltiError::Other(anyhow::anyhow!(e)))?;
     let html = TEMPLATE.replace("/*__ULTIMADSE_DATA__*/null", &json);
     fs::write(out, html).map_err(|e| UltiError::io(out, e))
 }

@@ -59,7 +59,10 @@ impl SpliceMotif {
             return SpliceMotif::Unknown;
         }
         let d = [donor[0].to_ascii_uppercase(), donor[1].to_ascii_uppercase()];
-        let a = [acceptor[0].to_ascii_uppercase(), acceptor[1].to_ascii_uppercase()];
+        let a = [
+            acceptor[0].to_ascii_uppercase(),
+            acceptor[1].to_ascii_uppercase(),
+        ];
         if d == [b'G', b'T'] && a == [b'A', b'G'] {
             return SpliceMotif::GtAg;
         }
@@ -90,7 +93,7 @@ pub struct Reference {
 impl Reference {
     pub fn load(path: &Path) -> UltiResult<Self> {
         use noodles::fasta;
-        let mut reader = fasta::reader::Builder::default()
+        let mut reader = fasta::reader::Builder
             .build_from_path(path)
             .map_err(|e| UltiError::reference(path, format!("cannot open: {e}")))?;
         let mut sequences = HashMap::new();
@@ -261,9 +264,18 @@ mod tests {
 
     #[test]
     fn classifies_canonical_motifs() {
-        assert_eq!(SpliceMotif::from_dinucleotides(b"GT", b"AG"), SpliceMotif::GtAg);
-        assert_eq!(SpliceMotif::from_dinucleotides(b"gc", b"ag"), SpliceMotif::GcAg);
-        assert_eq!(SpliceMotif::from_dinucleotides(b"AT", b"AC"), SpliceMotif::AtAc);
+        assert_eq!(
+            SpliceMotif::from_dinucleotides(b"GT", b"AG"),
+            SpliceMotif::GtAg
+        );
+        assert_eq!(
+            SpliceMotif::from_dinucleotides(b"gc", b"ag"),
+            SpliceMotif::GcAg
+        );
+        assert_eq!(
+            SpliceMotif::from_dinucleotides(b"AT", b"AC"),
+            SpliceMotif::AtAc
+        );
         assert_eq!(
             SpliceMotif::from_dinucleotides(b"CT", b"AC"),
             SpliceMotif::GtAgReverse

@@ -120,7 +120,10 @@ pub fn parse_cds(path: &Path) -> UltiResult<CdsCatalog> {
         .and_then(|s| s.to_str())
         .map(|n| {
             let l = n.to_ascii_lowercase();
-            l.ends_with(".gff") || l.ends_with(".gff3") || l.ends_with(".gff.gz") || l.ends_with(".gff3.gz")
+            l.ends_with(".gff")
+                || l.ends_with(".gff3")
+                || l.ends_with(".gff.gz")
+                || l.ends_with(".gff3.gz")
         })
         .unwrap_or(false);
 
@@ -490,9 +493,18 @@ chr1\ts\tCDS\t500\t650\t.\t+\t2\tgene_id \"G1\"; transcript_id \"T1\";
             strand: Strand::Forward,
             kind: EventKind::SE,
             exons: vec![
-                Exon { start: 100, end: 200 },
-                Exon { start: 300, end: 329 }, // 30 nt
-                Exon { start: 500, end: 600 },
+                Exon {
+                    start: 100,
+                    end: 200,
+                },
+                Exon {
+                    start: 300,
+                    end: 329,
+                }, // 30 nt
+                Exon {
+                    start: 500,
+                    end: 600,
+                },
             ],
             inclusion_junctions: vec![],
             exclusion_junctions: vec![],
@@ -504,9 +516,18 @@ chr1\ts\tCDS\t500\t650\t.\t+\t2\tgene_id \"G1\"; transcript_id \"T1\";
             chrom: "chr1".into(),
             strand: Strand::Forward,
             cds: vec![
-                Exon { start: 100, end: 200 },
-                Exon { start: 300, end: 329 },
-                Exon { start: 500, end: 600 },
+                Exon {
+                    start: 100,
+                    end: 200,
+                },
+                Exon {
+                    start: 300,
+                    end: 329,
+                },
+                Exon {
+                    start: 500,
+                    end: 600,
+                },
             ],
         };
         let c = predict_consequence_for_transcript(&ev, &tx, None);
@@ -524,9 +545,18 @@ chr1\ts\tCDS\t500\t650\t.\t+\t2\tgene_id \"G1\"; transcript_id \"T1\";
             strand: Strand::Forward,
             kind: EventKind::SE,
             exons: vec![
-                Exon { start: 100, end: 200 },
-                Exon { start: 300, end: 330 }, // 31 nt
-                Exon { start: 500, end: 600 },
+                Exon {
+                    start: 100,
+                    end: 200,
+                },
+                Exon {
+                    start: 300,
+                    end: 330,
+                }, // 31 nt
+                Exon {
+                    start: 500,
+                    end: 600,
+                },
             ],
             inclusion_junctions: vec![],
             exclusion_junctions: vec![],
@@ -538,9 +568,18 @@ chr1\ts\tCDS\t500\t650\t.\t+\t2\tgene_id \"G1\"; transcript_id \"T1\";
             chrom: "chr1".into(),
             strand: Strand::Forward,
             cds: vec![
-                Exon { start: 100, end: 200 },
-                Exon { start: 300, end: 330 },
-                Exon { start: 500, end: 600 },
+                Exon {
+                    start: 100,
+                    end: 200,
+                },
+                Exon {
+                    start: 300,
+                    end: 330,
+                },
+                Exon {
+                    start: 500,
+                    end: 600,
+                },
             ],
         };
         let c = predict_consequence_for_transcript(&ev, &tx, None);

@@ -25,10 +25,10 @@ use std::path::Path;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::Position;
 use crate::cli::MultimapStrategy;
 use crate::config::RunConfig;
 use crate::error::{UltiError, UltiResult};
-use crate::Position;
 
 /// Genome-oriented splice junction. `donor_end` and `acceptor_start` are the
 /// 1-based reference coordinates of the exon bases *flanking* the intron —
@@ -75,8 +75,7 @@ impl JunctionMatrix {
         {
             let f = std::fs::File::create(&tmp).map_err(|e| UltiError::io(&tmp, e))?;
             let mut w = std::io::BufWriter::new(f);
-            bincode::serialize_into(&mut w, self)
-                .map_err(|e| UltiError::Cache(e.to_string()))?;
+            bincode::serialize_into(&mut w, self).map_err(|e| UltiError::Cache(e.to_string()))?;
             w.flush().map_err(|e| UltiError::io(&tmp, e))?;
         }
         std::fs::rename(&tmp, path).map_err(|e| UltiError::io(path, e))
@@ -215,7 +214,7 @@ pub fn read_bam_junctions(
             None => continue,
         };
         let mut pos = match record.alignment_start() {
-            Some(Ok(p)) => u64::from(p.get() as u64),
+            Some(Ok(p)) => p.get() as u64,
             _ => continue,
         };
 
@@ -310,7 +309,10 @@ fn collapse_wobble(
     let mut by_chrom: HashMap<String, Vec<(Junction, Vec<f64>, f64)>> = HashMap::new();
     for (j, c) in counts {
         let total: f64 = c.iter().sum();
-        by_chrom.entry(j.chrom.clone()).or_default().push((j, c, total));
+        by_chrom
+            .entry(j.chrom.clone())
+            .or_default()
+            .push((j, c, total));
     }
 
     let mut out: HashMap<Junction, Vec<f64>> = HashMap::new();
@@ -321,8 +323,7 @@ fn collapse_wobble(
         for (j, c, _) in entries {
             let mut merged = false;
             for (anchor, ac) in anchors.iter_mut() {
-                if (j.donor_end as i64 - anchor.donor_end as i64).unsigned_abs()
-                    <= tolerance as u64
+                if (j.donor_end as i64 - anchor.donor_end as i64).unsigned_abs() <= tolerance as u64
                     && (j.acceptor_start as i64 - anchor.acceptor_start as i64).unsigned_abs()
                         <= tolerance as u64
                 {
@@ -343,4 +344,3 @@ fn collapse_wobble(
     }
     out
 }
-

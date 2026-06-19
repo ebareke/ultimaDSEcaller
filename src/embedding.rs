@@ -27,10 +27,7 @@ pub struct Embedding2D {
 /// Compute the PSI matrix `events × samples` from the contrast-aware per-
 /// event PSI vectors. Returns `None` if there are fewer than 2 events or
 /// fewer than 2 samples.
-pub fn build_psi_matrix(
-    sample_ids: &[String],
-    per_event_psi: &[Vec<f64>],
-) -> Option<DMatrix<f64>> {
+pub fn build_psi_matrix(sample_ids: &[String], per_event_psi: &[Vec<f64>]) -> Option<DMatrix<f64>> {
     if per_event_psi.is_empty() || sample_ids.len() < 2 {
         return None;
     }
@@ -135,7 +132,10 @@ pub fn umap_like_2d(matrix: &DMatrix<f64>, sample_ids: &[String], k: usize) -> E
     // k-NN with per-sample bandwidth.
     let mut sigma = vec![1.0_f64; n_samples];
     for i in 0..n_samples {
-        let mut row: Vec<f64> = (0..n_samples).filter(|&j| j != i).map(|j| dist[(i, j)]).collect();
+        let mut row: Vec<f64> = (0..n_samples)
+            .filter(|&j| j != i)
+            .map(|j| dist[(i, j)])
+            .collect();
         row.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         sigma[i] = row.get(k - 1).copied().unwrap_or(1.0).max(1e-6);
     }
@@ -182,8 +182,12 @@ pub fn umap_like_2d(matrix: &DMatrix<f64>, sample_ids: &[String], k: usize) -> E
     // Skip the trivial first eigenvector.
     let pick_x = order.get(1).copied().unwrap_or(0);
     let pick_y = order.get(2).copied().unwrap_or(pick_x);
-    let xs: Vec<f64> = (0..n_samples).map(|i| sym.eigenvectors[(i, pick_x)]).collect();
-    let ys: Vec<f64> = (0..n_samples).map(|i| sym.eigenvectors[(i, pick_y)]).collect();
+    let xs: Vec<f64> = (0..n_samples)
+        .map(|i| sym.eigenvectors[(i, pick_x)])
+        .collect();
+    let ys: Vec<f64> = (0..n_samples)
+        .map(|i| sym.eigenvectors[(i, pick_y)])
+        .collect();
     Embedding2D {
         samples: sample_ids.to_vec(),
         xs,
@@ -213,10 +217,8 @@ mod tests {
             4,
             6,
             &[
-                0.1, 0.1, 0.15, 0.9, 0.85, 0.95,
-                0.05, 0.1, 0.05, 0.95, 0.9, 0.92,
-                0.9, 0.85, 0.95, 0.1, 0.05, 0.15,
-                0.95, 0.9, 0.92, 0.05, 0.1, 0.05,
+                0.1, 0.1, 0.15, 0.9, 0.85, 0.95, 0.05, 0.1, 0.05, 0.95, 0.9, 0.92, 0.9, 0.85, 0.95,
+                0.1, 0.05, 0.15, 0.95, 0.9, 0.92, 0.05, 0.1, 0.05,
             ],
         );
         let ids: Vec<String> = (0..6).map(|i| format!("s{i}")).collect();
@@ -233,10 +235,8 @@ mod tests {
             4,
             5,
             &[
-                0.1, 0.2, 0.3, 0.7, 0.8,
-                0.2, 0.1, 0.4, 0.8, 0.9,
-                0.9, 0.85, 0.8, 0.2, 0.1,
-                0.95, 0.9, 0.7, 0.1, 0.15,
+                0.1, 0.2, 0.3, 0.7, 0.8, 0.2, 0.1, 0.4, 0.8, 0.9, 0.9, 0.85, 0.8, 0.2, 0.1, 0.95,
+                0.9, 0.7, 0.1, 0.15,
             ],
         );
         let ids: Vec<String> = (0..5).map(|i| format!("s{i}")).collect();
