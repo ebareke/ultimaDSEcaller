@@ -7,10 +7,15 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  IMAGE: ghcr.io/ebareke/ultimadsecaller
+  SIF_REPO: ghcr.io/ebareke/ultimadsecaller-sif
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Cross-platform binaries
+  # ---------------------------------------------------------------------------
   build:
-    name: build
+    name: build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,29 +35,38 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
-      - name: Install musl tools
-        if: contains(matrix.target, 'musl')
+      - name: Install musl + cross tools
+        if: contains(matrix.target, 'linux-musl')
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
+          if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }} --bin ultimaDSEcaller
+        env:
+          TARGET: ${{ matrix.target }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --locked --target "$TARGET" --bin ultimaDSEcaller
       - name: Package
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          mkdir -p dist
           name="ultimaDSEcaller-${GITHUB_REF_NAME}-${TARGET}"
           mkdir -p "dist/${name}"
           cp "target/${TARGET}/release/ultimaDSEcaller" "dist/${name}/"
-          cp README.md "dist/${name}/"
-          cp Cargo.toml "dist/${name}/"
-          (cd dist && tar czf "${name}.tar.gz" "${name}")
+          cp README.md LICENSE USAGE.md CHANGELOG.md "dist/${name}/"
+          tar -C dist -czf "dist/${name}.tar.gz" "${name}"
       - uses: actions/upload-artifact@v4
         with:
           name: ultimaDSEcaller-${{ matrix.target }}
           path: dist/*.tar.gz
 
+  # ---------------------------------------------------------------------------
+  # 2. GitHub Release with the binaries
+  # ---------------------------------------------------------------------------
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -72,14 +86,79 @@ jobs:
         with:
           files: release/*
           generate_release_notes: true
+          fail_on_unmatched_files: false
 
+  # ---------------------------------------------------------------------------
+  # 3. Docker image -> GHCR (bundles the caller + minimap2/STAR/HISAT2/samtools)
+  # ---------------------------------------------------------------------------
   docker:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Build Docker image
+      - name: Resolve version (strip leading v)
+        id: meta
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # The Dockerfile produces an x86_64 musl static binary; build the
+          # amd64 image only (arm64 image is on the roadmap).
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+
+  # ---------------------------------------------------------------------------
+  # 4. Apptainer / Singularity .sif -> GHCR (ORAS) + GitHub Release asset
+  # ---------------------------------------------------------------------------
+  apptainer:
+    needs: docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Apptainer
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.6
+      - name: Build SIF from the GHCR image
         env:
-          TAG: ${{ github.ref_name }}
-        run: docker build -t "ultimadsecaller:${TAG}" .
+          VERSION: ${{ needs.docker.outputs.version }}
+          APPTAINER_DOCKER_USERNAME: ${{ github.actor }}
+          APPTAINER_DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apptainer build "ultimadsecaller_${VERSION}.sif" "docker://${IMAGE}:${VERSION}"
+          apptainer inspect "ultimadsecaller_${VERSION}.sif"
+      - name: Push SIF to GHCR (ORAS)
+        env:
+          VERSION: ${{ needs.docker.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: |
+          echo "$GH_TOKEN" | apptainer registry login -u "$GH_ACTOR" --password-stdin oras://ghcr.io
+          apptainer push "ultimadsecaller_${VERSION}.sif" "oras://${SIF_REPO}:${VERSION}"
+      - name: Attach SIF to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ultimadsecaller_*.sif
+          fail_on_unmatched_files: false

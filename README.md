@@ -148,12 +148,23 @@ docs/               published documentation site
 | [ROADMAP.md](ROADMAP.md) | Planned work |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Security model and reporting |
+| [CITATION.md](CITATION.md) | How to cite ultimaDSEcaller |
 
 ## Authors
 
 - **Eric B.** — <eb.bioinfo@pm.me>
 - **Ethan B.** — <b.bioinfo@pm.me>
 - **Conrad B.** — <b.bioinfo@pm.me>
+
+## Citation
+
+If you use ultimaDSEcaller in your research, please cite it — see
+[CITATION.md](CITATION.md) (or the **Cite this repository** button on GitHub,
+powered by [CITATION.cff](CITATION.cff)).
+
+> Bareke, E., Bareke, E., & Bareke, C. (2026). *ultimaDSEcaller: Ultimate
+> Differential Splicing Event caller for short- and long-read RNA-seq*
+> (Version 1.0.0) [Computer software]. https://github.com/ebareke/ultimaDSEcaller
 
 ## License
 

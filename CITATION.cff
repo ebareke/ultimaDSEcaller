@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use ultimaDSEcaller in your research, please cite it as below."
+title: "ultimaDSEcaller: Ultimate Differential Splicing Event caller for short- and long-read RNA-seq"
+abstract: >-
+  ultimaDSEcaller detects, quantifies, statistically tests, and reports
+  differential alternative-splicing events between groups of RNA-seq samples,
+  from Illumina short reads and PacBio / Oxford Nanopore long reads. It
+  covers 18 event classes, multiple statistical models with a consensus
+  engine, splice-motif and protein-consequence annotation, and ships with a
+  Nextflow pipeline plus Docker/Apptainer images for the full FASTQ-to-events
+  workflow.
+type: software
+version: "1.0.0"
+date-released: "2026-06-15"
+license: MIT
+repository-code: "https://github.com/ebareke/ultimaDSEcaller"
+url: "https://ebareke.github.io/ultimaDSEcaller/"
+keywords:
+  - RNA-seq
+  - alternative splicing
+  - differential splicing
+  - long-read sequencing
+  - transcriptomics
+  - bioinformatics
+authors:
+  - family-names: Bareke
+    given-names: Eric
+    email: eb.bioinfo@pm.me
+  - family-names: Bareke
+    given-names: Ethan
+    email: eb.bioinfo@pm.me
+  - family-names: Bareke
+    given-names: Conrad
+    email: eb.bioinfo@pm.me

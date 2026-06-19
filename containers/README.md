@@ -27,10 +27,13 @@ Published image (after a tagged release): `ghcr.io/ebareke/ultimadsecaller:1.0.0
 ## Apptainer / Singularity (HPC)
 
 ```bash
-# Option A — from the published image
+# Option A — pull the pre-built SIF published by the release workflow (ORAS)
+apptainer pull ultimadsecaller.sif oras://ghcr.io/ebareke/ultimadsecaller-sif:1.0.0
+
+# Option B — build the SIF from the published Docker image
 apptainer build ultimadsecaller.sif containers/ultimadsecaller.def
 
-# Option B — from a locally-built Docker image, no registry needed
+# Option C — from a locally-built Docker image, no registry needed
 docker build -t ultimadsecaller:1.0.0 .
 apptainer build ultimadsecaller.sif docker-daemon://ultimadsecaller:1.0.0
 
@@ -39,6 +42,13 @@ apptainer run ultimadsecaller.sif run \
     -s samples.tsv -a annotation.gtf -o results \
     --contrast group:treatment-control
 ```
+
+Each tagged release builds and pushes both artifacts automatically:
+
+| Artifact | Location |
+|---|---|
+| Docker image | `ghcr.io/ebareke/ultimadsecaller:<version>` and `:latest` |
+| Apptainer SIF | `oras://ghcr.io/ebareke/ultimadsecaller-sif:<version>` + GitHub Release asset |
 
 ## Image contents
 
