@@ -113,12 +113,17 @@
 
   <section>
     <h2>Install</h2>
-    <pre><code># From source (Rust 1.85+)
+    <pre><code># Pull the prebuilt container (bundles minimap2, STAR, HISAT2, samtools)
+docker pull ghcr.io/ebareke/ultimadsecaller:1.0.0
+# HPC / Apptainer
+apptainer pull ultimadsecaller.sif oras://ghcr.io/ebareke/ultimadsecaller-sif:1.0.0
+
+# Or build from source (Rust 1.85+)
 git clone https://github.com/ebareke/ultimaDSEcaller.git
 cd ultimaDSEcaller
 cargo build --release --all-features
 
-# Or build the container (bundles minimap2, STAR, HISAT2, samtools)
+# Or build the container locally
 docker build -t ultimadsecaller:1.0.0 .</code></pre>
   </section>
 
