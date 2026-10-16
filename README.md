@@ -153,8 +153,8 @@ docs/               published documentation site
 ## Authors
 
 - **Eric B.** — <eb.bioinfo@pm.me>
-- **Ethan B.** — <b.bioinfo@pm.me>
-- **Conrad B.** — <b.bioinfo@pm.me>
+- **Ethan B.** — <eb.bioinfo@pm.me>
+- **Conrad B.** — <eb.bioinfo@pm.me>
 
 ## Citation
 
